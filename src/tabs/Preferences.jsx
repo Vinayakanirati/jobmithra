@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import GravityCard from '../components/GravityCard';
 import { useAuth } from '../context/AuthContext';
 
 const Preferences = () => {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const [formData, setFormData] = useState({
-        role: '',
-        location: '',
-        experience: ''
+        role: user?.preferredRole || '',
+        location: user?.preferredLocation || '',
+        experience: user?.preferredExperience || ''
     });
+
+    const [lEmail, setLEmail] = useState(user?.linkedinEmail || '');
+    const [lPassword, setLPassword] = useState('');
+    const [isAutoApplying, setIsAutoApplying] = useState(false);
     const [errors, setErrors] = useState({});
 
     // Use rolesSuited from user data if available
@@ -25,10 +29,70 @@ const Preferences = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSave = () => {
-        if (validate()) {
-            alert('Preferences saved!');
+    useEffect(() => {
+        if (user) {
+            setFormData({
+                role: user.preferredRole || '',
+                location: user.preferredLocation || '',
+                experience: user.preferredExperience || ''
+            });
+            setLEmail(user.linkedinEmail || '');
         }
+    }, [user]);
+
+    const handleSavePreferences = async () => {
+        if (!validate()) return;
+        try {
+            const res = await fetch('http://localhost:5000/api/save-preferences', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: user.email,
+                    role: formData.role,
+                    location: formData.location,
+                    experience: formData.experience
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                updateUser(data.user);
+                alert(data.message);
+            } else {
+                alert(data.message || 'Error saving preferences');
+            }
+        } catch (err) {
+            alert('Error saving preferences');
+        }
+    };
+
+    const handleLinkedInSave = async () => {
+        try {
+            const res = await fetch('http://localhost:5000/api/save-linkedin-credentials', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email, lEmail, lPassword })
+            });
+            const data = await res.json();
+            alert(data.message);
+        } catch (err) {
+            alert('Error saving credentials');
+        }
+    };
+
+    const handleStartAutoApply = async () => {
+        setIsAutoApplying(true);
+        try {
+            const res = await fetch('http://localhost:5000/api/start-auto-apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email })
+            });
+            const data = await res.json();
+            alert(data.message);
+        } catch (err) {
+            alert('Error starting automation');
+        }
+        setIsAutoApplying(false);
     };
 
     return (
@@ -129,7 +193,7 @@ const Preferences = () => {
                     {errors.experience && <span style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: '0.2rem' }}>{errors.experience}</span>}
                 </div>
 
-                <button onClick={handleSave} style={{
+                <button onClick={handleSavePreferences} style={{
                     width: '100%',
                     padding: '1rem',
                     marginTop: '1rem',
@@ -143,51 +207,6 @@ const Preferences = () => {
                     Save Preferences
                 </button>
             </GravityCard>
-
-            <h3 className="animate-fall-in" style={{ marginTop: '2rem', marginBottom: '1rem', fontFamily: 'Outfit', color: 'white', fontSize: '1.2rem' }}>Personalized Job Matches (AI Agent)</h3>
-
-            <div style={{ display: 'grid', gap: '1rem' }}>
-                {user?.jobMatches && user.jobMatches.length > 0 ? (
-                    user.jobMatches.map((job, i) => (
-                        <GravityCard key={i} delay={0.2 + (i * 0.1)}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <h4 style={{ color: 'var(--accent-blue)', marginBottom: '0.2rem' }}>{job.title}</h4>
-                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{job.company} • <span style={{ color: 'var(--accent-cyan)' }}>{job.level}</span></p>
-                                </div>
-                                <a
-                                    href={job.link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{
-                                        background: 'rgba(0, 243, 255, 0.1)',
-                                        border: '1px solid var(--accent-blue)',
-                                        color: 'var(--accent-blue)',
-                                        padding: '0.5rem 1rem',
-                                        borderRadius: '20px',
-                                        fontSize: '0.8rem',
-                                        textDecoration: 'none',
-                                        fontWeight: 'bold',
-                                        transition: 'all 0.3s'
-                                    }}
-                                    onMouseOver={(e) => e.target.style.background = 'var(--accent-blue)'}
-                                    onMouseOut={(e) => e.target.style.background = 'rgba(0, 243, 255, 0.1)'}
-                                    onMouseDown={(e) => e.target.style.color = 'black'}
-                                    onMouseUp={(e) => e.target.style.color = 'var(--accent-blue)'}
-                                >
-                                    View on LinkedIn
-                                </a>
-                            </div>
-                        </GravityCard>
-                    ))
-                ) : (
-                    <GravityCard delay={0.2}>
-                        <p style={{ color: 'var(--text-secondary)', textAlign: 'center', py: '2rem' }}>
-                            {user?.resume ? "Analyzing your experience to find the best matches..." : "Upload your resume to get personalized job recommendations."}
-                        </p>
-                    </GravityCard>
-                )}
-            </div>
         </div>
     );
 };

@@ -66,6 +66,58 @@ const UserSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    resetOTP: {
+        type: String,
+        default: null
+    },
+    resetOTPExpire: {
+        type: Date,
+        default: null
+    },
+    linkedinEmail: {
+        type: String,
+        default: ''
+    },
+    linkedinPassword: {
+        type: String, // Encrypted
+        default: ''
+    },
+    dailyJobsAppliedCount: {
+        type: Number,
+        default: 0
+    },
+    lastAutomationRun: {
+        type: Date,
+        default: null
+    },
+    preferredRole: {
+        type: String,
+        default: ''
+    },
+    preferredLocation: {
+        type: String,
+        default: ''
+    },
+    preferredExperience: {
+        type: String,
+        default: ''
+    },
+    acceptedCount: {
+        type: Number,
+        default: 0
+    },
+    rejectedCount: {
+        type: Number,
+        default: 0
+    },
+    internships: {
+        type: [Object],
+        default: []
+    },
+    achievements: {
+        type: [String],
+        default: []
     }
 });
 

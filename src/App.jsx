@@ -9,6 +9,7 @@ import Dashboard from './tabs/Dashboard';
 import Profile from './tabs/Profile';
 import Login from './tabs/Login';
 import Register from './tabs/Register';
+import ForgotPassword from './tabs/ForgotPassword';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 function AppContent() {
@@ -31,8 +32,15 @@ function AppContent() {
   const renderTab = () => {
     switch (activeTab) {
       case 'home': return <Home onNavigate={setActiveTab} />;
-      case 'login': return <Login onSuccess={() => setActiveTab('home')} onSwitchToRegister={() => setActiveTab('register')} />;
+      case 'login': return (
+        <Login
+          onSuccess={() => setActiveTab('home')}
+          onSwitchToRegister={() => setActiveTab('register')}
+          onForgotPassword={() => setActiveTab('forgot-password')}
+        />
+      );
       case 'register': return <Register onSuccess={() => setActiveTab('login')} onSwitchToLogin={() => setActiveTab('login')} />;
+      case 'forgot-password': return <ForgotPassword onBackToLogin={() => setActiveTab('login')} />;
 
       // Protected Routes
       case 'resume': return isAuthenticated ? <Resume /> : <Login onSuccess={() => setActiveTab('resume')} onSwitchToRegister={() => setActiveTab('register')} />;

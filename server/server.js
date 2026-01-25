@@ -5,7 +5,22 @@ const cors = require('cors');
 const User = require('./models/User');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
+const { encrypt, decrypt } = require('./utils/encryption');
+const { spawn } = require('child_process');
+
 const app = express();
+
+// Nodemailer transporter (using vinayakanirati@gmail.com)
+// Note: User prompt mentions vinayakanirati@gmail.com
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'vinayakanirati@gmail.com',
+        pass: process.env.GMAIL_APP_PASSWORD
+    }
+});
 
 // Middleware
 app.use(express.json({ limit: '50mb' }));
@@ -72,6 +87,13 @@ app.post('/api/register', async (req, res) => {
             education: user.education,
             rolesSuited: user.rolesSuited,
             jobsApplied: user.jobsApplied,
+            preferredRole: user.preferredRole,
+            preferredLocation: user.preferredLocation,
+            preferredExperience: user.preferredExperience,
+            linkedinEmail: user.linkedinEmail,
+            dailyJobsAppliedCount: user.dailyJobsAppliedCount,
+            acceptedCount: user.acceptedCount,
+            rejectedCount: user.rejectedCount,
             message: 'User registered successfully'
         });
     } catch (err) {
@@ -107,10 +129,71 @@ app.post('/api/login', async (req, res) => {
             education: user.education,
             rolesSuited: user.rolesSuited,
             jobsApplied: user.jobsApplied,
+            preferredRole: user.preferredRole,
+            preferredLocation: user.preferredLocation,
+            preferredExperience: user.preferredExperience,
+            linkedinEmail: user.linkedinEmail,
+            dailyJobsAppliedCount: user.dailyJobsAppliedCount,
+            acceptedCount: user.acceptedCount,
+            rejectedCount: user.rejectedCount,
             message: 'Logged in successfully'
         });
     } catch (err) {
         console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Forgot Password - Send OTP
+app.post('/api/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.resetOTP = otp;
+        user.resetOTPExpire = Date.now() + 3 * 60 * 1000; // 3 minutes
+        await user.save();
+
+        const mailOptions = {
+            from: 'vinayakanirati@gmail.com',
+            to: email,
+            subject: 'jobmithra reset password',
+            text: `Your OTP for password reset is: ${otp}. It is valid for 3 minutes.`
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Email error:', error);
+                return res.status(500).json({ message: 'Error sending email' });
+            }
+            res.json({ message: 'OTP sent to email' });
+        });
+    } catch (err) {
+        res.status(500).send('Server Error');
+    }
+});
+
+// Verify OTP & Reset Password
+app.post('/api/reset-password', async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+    try {
+        const user = await User.findOne({
+            email,
+            resetOTP: otp,
+            resetOTPExpire: { $gt: Date.now() }
+        });
+
+        if (!user) return res.status(400).json({ message: 'Invalid or expired OTP' });
+
+        user.password = newPassword;
+        user.resetOTP = null;
+        user.resetOTPExpire = null;
+        await user.save();
+
+        res.json({ message: 'Password updated successfully' });
+    } catch (err) {
         res.status(500).send('Server Error');
     }
 });
@@ -180,21 +263,31 @@ app.post('/api/analyze-resume', async (req, res) => {
 
         const prompt = `
             Analyze this resume and provide:
-            1. A list of technical and soft skills.
-            2. 3 actionable improvements.
-            3. Experience level (e.g., Intern, Entry Level, Junior, Senior, Lead).
-            4. Roles suited (list of titles).
-            5. Recommended LinkedIn Job Search Links (5-10 matches). 
-               Each match should have: title, company (or "Top Companies"), level, and a realistic LinkedIn search link.
+            1. Full Name of the candidate.
+            2. Email and Contact Phone Number (if present).
+            3. A list of technical and soft skills.
+            4. 3 actionable improvements.
+            5. Experience level (e.g., Intern, Entry Level, Junior, Senior, Lead).
+            6. A list of internships (company, role, duration).
+            7. Key achievements and certifications.
+            8. Roles suited (list of titles).
+            9. Recommended LinkedIn "EASY APPLY" Job Search Links (5-10 matches). 
+               Each match MUST include the parameter "&f_AL=true" in the link to filter for Easy Apply jobs. 
+               Each match should have: title, company (or "Top Companies"), level, and the link.
             
             Return the response in this JSON format strictly:
             {
+                "name": "Full Name",
+                "email": "email@example.com",
+                "mobile": "1234567890",
                 "skills": ["Skill1", ...],
                 "improvements": ["Point 1", ...],
                 "experienceLevel": "Entry Level",
+                "internships": [{"company": "X", "role": "Y", "duration": "Z"}, ...],
+                "achievements": ["Cert A", "Won B", ...],
                 "rolesSuited": ["Frontend Developer", ...],
                 "jobMatches": [
-                    {"title": "Role Title", "company": "Company Name", "level": "Junior", "link": "https://www.linkedin.com/jobs/search/?keywords=..." },
+                    {"title": "Role Title", "company": "Company Name", "level": "Junior", "link": "https://www.linkedin.com/jobs/search/?f_AL=true&keywords=..." },
                     ...
                 ]
             }
@@ -215,21 +308,335 @@ app.post('/api/analyze-resume', async (req, res) => {
         const jsonResponse = JSON.parse(responseText.replace(/```json|```/g, '').trim());
 
         // Update user in database
+        if (jsonResponse.name) user.name = jsonResponse.name;
+        if (jsonResponse.mobile) user.mobile = jsonResponse.mobile;
         if (jsonResponse.skills) user.skills = jsonResponse.skills;
         if (jsonResponse.experienceLevel) user.experienceLevel = jsonResponse.experienceLevel;
         if (jsonResponse.rolesSuited) user.rolesSuited = jsonResponse.rolesSuited;
         if (jsonResponse.jobMatches) user.jobMatches = jsonResponse.jobMatches;
+        if (jsonResponse.internships) user.internships = jsonResponse.internships;
+        if (jsonResponse.achievements) user.achievements = jsonResponse.achievements;
 
         await user.save();
 
         res.json({
             ...jsonResponse,
-            message: 'Resume analyzed and job matches generated successfully'
+            message: 'Resume analyzed and profile updated successfully',
+            user: {
+                _id: user.id,
+                name: user.name,
+                email: user.email,
+                mobile: user.mobile,
+                skills: user.skills,
+                experienceLevel: user.experienceLevel,
+                rolesSuited: user.rolesSuited,
+                jobMatches: user.jobMatches,
+                internships: user.internships,
+                achievements: user.achievements
+            }
         });
 
     } catch (err) {
         console.error("AI Analysis Error:", err);
         res.status(500).json({ message: 'Failed to analyze resume', error: err.message });
+    }
+});
+
+// Apply Job
+app.post('/api/apply-job', async (req, res) => {
+    const { email, jobTitle, company, interviewPrepLink } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.jobsApplied += 1;
+        user.applications.push({
+            role: jobTitle,
+            company: company,
+            status: 'Applied',
+            date: new Date()
+        });
+        await user.save();
+
+        const mailOptions = {
+            from: 'vinayakanirati@gmail.com',
+            to: email,
+            subject: `Job Application: ${jobTitle} at ${company}`,
+            text: `You have successfully applied for ${jobTitle} at ${company}. 
+            \nPrepare for your interview here: ${interviewPrepLink}`
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) console.error('Email error:', error);
+            res.json({ message: 'Application submitted and email sent', user });
+        });
+    } catch (err) {
+        res.status(500).send('Server Error');
+    }
+});
+
+// Save LinkedIn Credentials
+app.post('/api/save-linkedin-credentials', async (req, res) => {
+    const { email, lEmail, lPassword } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.linkedinEmail = lEmail;
+        user.linkedinPassword = encrypt(lPassword);
+        await user.save();
+
+        res.json({
+            message: 'LinkedIn credentials saved securely',
+            user: {
+                linkedinEmail: user.linkedinEmail
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Start LinkedIn Auto-Apply
+app.post('/api/start-auto-apply', async (req, res) => {
+    const { email } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        if (!user.linkedinEmail || !user.linkedinPassword) {
+            return res.status(400).json({ message: 'LinkedIn credentials not configured.' });
+        }
+
+        // Daily Limit Check & Reset logic
+        const now = new Date();
+        const lastRun = user.lastAutomationRun;
+        let dailyCount = user.dailyJobsAppliedCount || 0;
+
+        if (lastRun) {
+            const lastRunDate = new Date(lastRun).toDateString();
+            const todayDate = now.toDateString();
+            if (lastRunDate !== todayDate) {
+                dailyCount = 0; // Reset for new day
+            }
+        }
+
+        if (dailyCount >= 5) {
+            return res.status(400).json({ message: 'Daily limit of 5 job applications reached. Please try again tomorrow.' });
+        }
+
+        const password = decrypt(user.linkedinPassword);
+
+        // Spawn Python process
+        const pythonProcess = spawn('python', ['./automation/agent.py']);
+
+        const inputData = JSON.stringify({
+            email: user.linkedinEmail,
+            password: password,
+            profile: {
+                name: user.name,
+                email: user.email,
+                phone: user.mobile,
+                skills: user.skills,
+                experienceLevel: user.experienceLevel,
+                education: user.education,
+                rolesSuited: user.rolesSuited,
+                preferredRole: user.preferredRole,
+                preferredLocation: user.preferredLocation,
+                preferredExperience: user.preferredExperience
+            },
+            jobMatches: user.jobMatches || [],
+            dailyLimitRemaining: 5 - dailyCount
+        });
+
+        pythonProcess.stdin.on('error', (err) => {
+            console.error('Stdin error:', err);
+        });
+
+        if (pythonProcess.stdin.writable) {
+            pythonProcess.stdin.write(inputData);
+            pythonProcess.stdin.end();
+        }
+
+        let output = '';
+        pythonProcess.stdout.on('data', (data) => {
+            output += data.toString();
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+            console.error(`Python Error: ${data}`);
+        });
+
+        pythonProcess.on('close', async (code) => {
+            console.log(`Python process exited with code ${code}`);
+            try {
+                const lines = output.trim().split('\n');
+                const lastLine = lines[lines.length - 1];
+                const resultData = JSON.parse(lastLine);
+
+                if (resultData.error) {
+                    return res.status(500).json({ message: `Automation Error: ${resultData.error}` });
+                }
+
+                if (resultData.results) {
+                    const appliedCount = resultData.results.filter(r => r.status === 'Applied').length;
+
+                    // Update user stats
+                    user.dailyJobsAppliedCount = dailyCount + appliedCount;
+                    user.jobsApplied += appliedCount;
+                    user.lastAutomationRun = now;
+
+                    // Log to user.applications
+                    resultData.results.forEach(r => {
+                        if (r.status === 'Applied') {
+                            user.applications.push({
+                                role: r.title,
+                                company: r.company || 'Unknown',
+                                status: 'Applied',
+                                date: new Date()
+                            });
+                        }
+                    });
+
+                    await user.save();
+
+                    const resultsText = resultData.results.map(r => `- ${r.title} at ${r.company}: ${r.status}`).join('\n');
+                    const mailOptions = {
+                        from: 'vinayakanirati@gmail.com',
+                        to: user.email,
+                        subject: 'JobMithra: Daily Job Application Summary',
+                        text: `LinkedIn automation completed for today.\n\nApplications Today: ${appliedCount}\nDaily Remaining: ${5 - user.dailyJobsAppliedCount}\n\nSummary:\n${resultsText}\n\nPrepare for interviews: http://localhost:5173/?tab=interview`
+                    };
+
+                    transporter.sendMail(mailOptions, (error) => {
+                        if (error) console.error('Email error:', error);
+                    });
+
+                    return res.json({
+                        message: `Automation finished. Applied to ${appliedCount} jobs.`,
+                        results: resultData.results,
+                        dailyCount: user.dailyJobsAppliedCount,
+                        user: user // Send full user back
+                    });
+                }
+
+                res.status(500).json({ message: 'Automation finished but returned no results.' });
+            } catch (e) {
+                res.status(500).json({ message: 'Automation process closed with invalid response.' });
+            }
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Save Job Preferences
+app.post('/api/save-preferences', async (req, res) => {
+    const { email, role, location, experience } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.preferredRole = role;
+        user.preferredLocation = location;
+        user.preferredExperience = experience;
+        await user.save();
+
+        res.json({
+            message: 'Preferences saved successfully',
+            user: {
+                preferredRole: user.preferredRole,
+                preferredLocation: user.preferredLocation,
+                preferredExperience: user.preferredExperience
+            }
+        });
+    } catch (err) {
+        res.status(500).send('Server Error');
+    }
+});
+
+// Start Single LinkedIn Apply
+app.post('/api/start-single-apply', async (req, res) => {
+    const { email, job } = req.body; // job: { title, company, link }
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        if (!user.linkedinEmail || !user.linkedinPassword) {
+            return res.status(400).json({ message: 'LinkedIn credentials not configured.' });
+        }
+
+        const password = decrypt(user.linkedinPassword);
+        const pythonProcess = spawn('python', ['./automation/agent.py']);
+
+        const inputData = JSON.stringify({
+            email: user.linkedinEmail,
+            password: password,
+            profile: {
+                name: user.name,
+                email: user.email,
+                phone: user.mobile,
+                skills: user.skills,
+                experienceLevel: user.experienceLevel,
+                education: user.education,
+                rolesSuited: user.rolesSuited,
+                preferredRole: user.preferredRole,
+                preferredLocation: user.preferredLocation,
+                preferredExperience: user.preferredExperience
+            },
+            jobMatches: [job], // Just the single job
+            dailyLimitRemaining: 1 // Allow at least one for manual trigger
+        });
+
+        pythonProcess.stdin.write(inputData);
+        pythonProcess.stdin.end();
+
+        let output = '';
+        pythonProcess.stdout.on('data', (data) => output += data.toString());
+        pythonProcess.stderr.on('data', (data) => console.error(`Python Error: ${data}`));
+
+        pythonProcess.on('close', async (code) => {
+            try {
+                const lines = output.trim().split('\n');
+                const lastLine = lines.pop();
+                const resultData = JSON.parse(lastLine);
+
+                if (resultData.results && Array.isArray(resultData.results) && resultData.results.length > 0) {
+                    const firstResult = resultData.results[0];
+                    if (firstResult.status === 'Applied') {
+                        user.jobsApplied += 1;
+                        user.dailyJobsAppliedCount = (user.dailyJobsAppliedCount || 0) + 1;
+                        user.applications.push({
+                            role: job.title,
+                            company: job.company,
+                            status: 'Applied',
+                            date: new Date()
+                        });
+                        await user.save();
+
+                        // SEND EMAIL FOR SINGLE APPLY
+                        const mailOptions = {
+                            from: 'vinayakanirati@gmail.com',
+                            to: user.email,
+                            subject: `JobMithra: Application Sent to ${job.company}`,
+                            text: `Success! Our agent just applied to the ${job.title} role at ${job.company} for you.\n\nYou can track this and other applications in your JobMithra dashboard.`
+                        };
+                        transporter.sendMail(mailOptions, (error) => {
+                            if (error) console.error('Email error:', error);
+                        });
+                    }
+                }
+                res.json({ ...resultData, user: user });
+            } catch (e) {
+                console.error('Frontend Parse Error:', e, 'Raw Output:', output);
+                res.status(500).json({ message: 'Automation finished with unexpected output structure.', error: e.message });
+            }
+        });
+    } catch (err) {
+        res.status(500).send('Server Error');
     }
 });
 

@@ -46,35 +46,64 @@ const Dashboard = () => {
                     delay={0.3}
                 />
                 <StatCard
-                    title="Experience Level"
-                    value={user?.experienceLevel || 'N/A'}
-                    subtext="Based on resume analysis"
+                    title="Internships"
+                    value={user?.internships?.length || 0}
+                    subtext="Extracted from resume"
                     color="#ff9d00"
                     delay={0.4}
                 />
+                <StatCard
+                    title="Interviews / Accepted"
+                    value={user?.acceptedCount || 0}
+                    subtext="Successful advances"
+                    color="#00ff88"
+                    delay={0.5}
+                />
+                <StatCard
+                    title="Rejected / Closed"
+                    value={user?.rejectedCount || 0}
+                    subtext="Applications closed"
+                    color="#ff4444"
+                    delay={0.6}
+                />
             </div>
 
-            <GravityCard delay={0.4} style={{ minHeight: '300px' }}>
-                <h3 style={{ marginBottom: '1.5rem' }}>Skills Identified</h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.8rem' }}>
-                    {skills.length > 0 ? (
-                        skills.map((skill, i) => (
-                            <span key={i} style={{
-                                padding: '0.5rem 1rem',
-                                background: 'rgba(255, 255, 255, 0.05)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
-                                borderRadius: '20px',
-                                fontSize: '0.9rem',
-                                color: 'var(--text-primary)'
-                            }}>
-                                {skill}
-                            </span>
-                        ))
-                    ) : (
-                        <p style={{ color: 'var(--text-secondary)' }}>No skills extracted yet. Please upload and analyze your resume.</p>
-                    )}
-                </div>
-            </GravityCard>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                <GravityCard delay={0.4} style={{ minHeight: '200px' }}>
+                    <h3 style={{ marginBottom: '1.5rem', fontSize: '1rem', color: 'var(--accent-cyan)' }}>Skills Identified</h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.8rem' }}>
+                        {skills.length > 0 ? (
+                            skills.map((skill, i) => (
+                                <span key={i} style={{
+                                    padding: '0.4rem 0.8rem',
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    borderRadius: '20px',
+                                    fontSize: '0.85rem',
+                                    color: 'var(--text-primary)'
+                                }}>
+                                    {skill}
+                                </span>
+                            ))
+                        ) : (
+                            <p style={{ color: 'var(--text-secondary)' }}>No skills extracted yet.</p>
+                        )}
+                    </div>
+                </GravityCard>
+
+                <GravityCard delay={0.5} style={{ minHeight: '200px' }}>
+                    <h3 style={{ marginBottom: '1.5rem', fontSize: '1rem', color: 'var(--accent-violet)' }}>Key Achievements</h3>
+                    <ul style={{ color: 'var(--text-primary)', paddingLeft: '1.2rem', fontSize: '0.9rem' }}>
+                        {user?.achievements && user.achievements.length > 0 ? (
+                            user.achievements.map((ach, i) => (
+                                <li key={i} style={{ marginBottom: '0.5rem' }}>{ach}</li>
+                            ))
+                        ) : (
+                            <li style={{ color: 'var(--text-secondary)' }}>Analyze resume to see achievements here.</li>
+                        )}
+                    </ul>
+                </GravityCard>
+            </div>
         </div>
     );
 };

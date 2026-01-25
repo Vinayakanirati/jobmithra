@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import GravityCard from '../components/GravityCard';
 import { useAuth } from '../context/AuthContext';
 
-const Login = ({ onSuccess, onSwitchToRegister }) => {
+const Login = ({ onSuccess, onSwitchToRegister, onForgotPassword }) => {
     const { login, error: authError } = useAuth();
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [errors, setErrors] = useState({});
@@ -91,7 +91,16 @@ const Login = ({ onSuccess, onSwitchToRegister }) => {
                     </button>
                 </form>
 
-                <p style={{ marginTop: '2rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                <p style={{ marginTop: '1.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                    <span
+                        onClick={onForgotPassword}
+                        style={{ color: 'var(--accent-blue)', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                        Forgot Password?
+                    </span>
+                </p>
+
+                <p style={{ marginTop: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                     Don't have an account?
                     <span
                         onClick={onSwitchToRegister}
