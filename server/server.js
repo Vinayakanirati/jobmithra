@@ -171,21 +171,32 @@ app.post('/api/analyze-resume', async (req, res) => {
         const resumeData = req.body.resumeContent || user.resume;
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
 
         // Extract base64 part
         const base64Data = resumeData.split(',')[1];
         const mimeType = resumeData.split(';')[0].split(':')[1];
 
         const prompt = `
-            Analyze this resume. 
-            1. Extract a list of technical and soft skills found.
-            2. Provide 3 specific, actionable improvements or feedback points to make this resume better.
+            Analyze this resume and provide:
+            1. A list of technical and soft skills.
+            2. 3 actionable improvements.
+            3. Experience level (e.g., Intern, Entry Level, Junior, Senior, Lead).
+            4. Roles suited (list of titles).
+            5. Recommended LinkedIn Job Search Links (5-10 matches). 
+               Each match should have: title, company (or "Top Companies"), level, and a realistic LinkedIn search link.
             
             Return the response in this JSON format strictly:
             {
-                "skills": ["Skill1", "Skill2", ...],
-                "improvements": ["Point 1", "Point 2", "Point 3"]
+                "skills": ["Skill1", ...],
+                "improvements": ["Point 1", ...],
+                "experienceLevel": "Entry Level",
+                "rolesSuited": ["Frontend Developer", ...],
+                "jobMatches": [
+                    {"title": "Role Title", "company": "Company Name", "level": "Junior", "link": "https://www.linkedin.com/jobs/search/?keywords=..." },
+                    ...
+                ]
             }
             Do not include markdown formatting like \`\`\`json. Just the raw JSON.
         `;
@@ -203,7 +214,18 @@ app.post('/api/analyze-resume', async (req, res) => {
         const responseText = result.response.text();
         const jsonResponse = JSON.parse(responseText.replace(/```json|```/g, '').trim());
 
-        res.json(jsonResponse);
+        // Update user in database
+        if (jsonResponse.skills) user.skills = jsonResponse.skills;
+        if (jsonResponse.experienceLevel) user.experienceLevel = jsonResponse.experienceLevel;
+        if (jsonResponse.rolesSuited) user.rolesSuited = jsonResponse.rolesSuited;
+        if (jsonResponse.jobMatches) user.jobMatches = jsonResponse.jobMatches;
+
+        await user.save();
+
+        res.json({
+            ...jsonResponse,
+            message: 'Resume analyzed and job matches generated successfully'
+        });
 
     } catch (err) {
         console.error("AI Analysis Error:", err);

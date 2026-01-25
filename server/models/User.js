@@ -23,6 +23,22 @@ const UserSchema = new mongoose.Schema({
         type: String, // Base64 or URL
         default: ''
     },
+    mobile: {
+        type: String,
+        default: ''
+    },
+    address: {
+        type: String,
+        default: ''
+    },
+    skills: {
+        type: [String],
+        default: []
+    },
+    education: {
+        type: [Object],
+        default: []
+    },
     rolesSuited: {
         type: [String],
         default: ['General Application']
@@ -31,6 +47,16 @@ const UserSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    experienceLevel: {
+        type: String,
+        default: 'Not Analyzed'
+    },
+    jobMatches: [{
+        title: String,
+        company: String,
+        link: String,
+        level: String
+    }],
     applications: [{
         role: String,
         company: String,

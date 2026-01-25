@@ -3,7 +3,7 @@ import GravityCard from '../components/GravityCard';
 import { useAuth } from '../context/AuthContext';
 
 const Resume = () => {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const [analyzing, setAnalyzing] = useState(false);
     const [analysisData, setAnalysisData] = useState(null);
 
@@ -22,6 +22,14 @@ const Resume = () => {
             if (!response.ok) throw new Error(data.message || 'Analysis failed');
 
             setAnalysisData(data);
+
+            // Sync analysis results to AuthContext
+            updateUser({
+                skills: data.skills || [],
+                experienceLevel: data.experienceLevel || 'Not Analyzed',
+                rolesSuited: data.rolesSuited || [],
+                jobMatches: data.jobMatches || []
+            });
         } catch (error) {
             console.error("Analysis failed:", error);
             alert("Failed to analyze resume. Make sure backend is running and API key is set.");
