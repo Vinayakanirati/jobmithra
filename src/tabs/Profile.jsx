@@ -12,6 +12,8 @@ const Profile = () => {
         mobile: '',
         address: '',
         skills: '',
+        linkedinEmail: '',
+        linkedinPassword: '',
         education: []
     });
     const [loading, setLoading] = useState(false);
@@ -24,6 +26,8 @@ const Profile = () => {
                 name: user.name || '',
                 mobile: user.mobile || '',
                 address: user.address || '',
+                linkedinEmail: user.linkedinEmail || '',
+                linkedinPassword: '', // Don't show password
                 skills: user.skills ? user.skills.join(', ') : '',
                 education: user.education && user.education.length > 0 ? user.education : [{ institution: '', degree: '', year: '' }]
             });
@@ -158,7 +162,7 @@ const Profile = () => {
                                         <span style={{ color: 'var(--accent-violet)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                             📄 Resume On File
                                         </span>
-                                        <button 
+                                        <button
                                             onClick={() => {
                                                 const win = window.open();
                                                 win.document.write(

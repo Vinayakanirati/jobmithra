@@ -259,7 +259,7 @@ app.post('/api/reset-password', async (req, res) => {
 
 // Update Profile
 app.post('/api/update-profile', async (req, res) => {
-    const { email, resume, photo, mobile, address, skills, education } = req.body;
+    const { email, resume, photo, mobile, address, skills, education, linkedinEmail, linkedinPassword } = req.body;
 
     try {
         const user = await User.findOne({ email });
@@ -273,6 +273,10 @@ app.post('/api/update-profile', async (req, res) => {
         if (address !== undefined) user.address = address;
         if (skills !== undefined) user.skills = skills;
         if (education !== undefined) user.education = education;
+        if (linkedinEmail !== undefined) user.linkedinEmail = linkedinEmail;
+        if (linkedinPassword !== undefined && linkedinPassword !== '') {
+            user.linkedinPassword = encrypt(linkedinPassword);
+        }
 
         await user.save();
 
@@ -289,7 +293,13 @@ app.post('/api/update-profile', async (req, res) => {
                 skills: user.skills,
                 education: user.education,
                 rolesSuited: user.rolesSuited,
-                jobsApplied: user.jobsApplied
+                jobsApplied: user.jobsApplied,
+                linkedinEmail: user.linkedinEmail,
+                dailyJobsAppliedCount: user.dailyJobsAppliedCount,
+                acceptedCount: user.acceptedCount,
+                rejectedCount: user.rejectedCount,
+                internships: user.internships,
+                achievements: user.achievements
             }
         });
     } catch (err) {
