@@ -38,10 +38,10 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const register = async (userData) => {
+    const registerInit = async (userData) => {
         setError(null);
         try {
-            const response = await fetch('http://localhost:5000/api/register', {
+            const response = await fetch('http://localhost:5000/api/register-init', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
@@ -50,6 +50,27 @@ export const AuthProvider = ({ children }) => {
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Registration failed');
 
+            return true;
+        } catch (err) {
+            console.error(err);
+            setError(err.message);
+            return false;
+        }
+    };
+
+    const registerVerify = async (email, otp) => {
+        setError(null);
+        try {
+            const response = await fetch('http://localhost:5000/api/register-verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otp })
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Verification failed');
+
+            setUser(data);
             return true;
         } catch (err) {
             console.error(err);
@@ -72,7 +93,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, updateUser, isAuthenticated: !!user, error }}>
+        <AuthContext.Provider value={{ user, login, registerInit, registerVerify, logout, updateUser, isAuthenticated: !!user, error }}>
             {children}
         </AuthContext.Provider>
     );

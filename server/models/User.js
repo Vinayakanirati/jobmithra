@@ -118,6 +118,18 @@ const UserSchema = new mongoose.Schema({
     achievements: {
         type: [String],
         default: []
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    verificationOTP: {
+        type: String,
+        default: null
+    },
+    verificationOTPExpire: {
+        type: Date,
+        default: null
     }
 });
 

@@ -49,33 +49,88 @@ mongoose.connect(uri)
 
 // Routes
 
-// Register
-app.post('/api/register', async (req, res) => {
-    const { name, email, password, resume, photo, mobile, address, skills, education } = req.body;
+// Register Init (Send OTP)
+app.post('/api/register-init', async (req, res) => {
+    const { name, email, password, mobile, address, skills, education } = req.body;
 
     try {
         let user = await User.findOne({ email });
-        if (user) {
-            return res.status(400).json({ message: 'User already exists' });
+        if (user && user.isVerified) {
+            return res.status(400).json({ message: 'User already exists and is verified' });
         }
 
-        user = new User({
-            name,
-            email,
-            password,
-            resume: resume || '',
-            photo: photo || '',
-            mobile: mobile || '',
-            address: address || '',
-            skills: skills || [],
-            education: education || [],
-            rolesSuited: ['Frontend Developer', 'Full Stack Engineer'], // Mocking AI analysis for now
-            jobsApplied: 0
-        });
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+        if (!user) {
+            user = new User({
+                name,
+                email,
+                password,
+                mobile: mobile || '',
+                address: address || '',
+                skills: skills || [],
+                education: education || [],
+                verificationOTP: otp,
+                verificationOTPExpire: otpExpire,
+                isVerified: false
+            });
+        } else {
+            // Update existing unverified user
+            user.name = name;
+            user.password = password;
+            user.mobile = mobile || user.mobile;
+            user.address = address || user.address;
+            user.skills = skills || user.skills;
+            user.education = education || user.education;
+            user.verificationOTP = otp;
+            user.verificationOTPExpire = otpExpire;
+        }
 
         await user.save();
 
-        res.status(201).json({
+        const mailOptions = {
+            from: 'vinayakanirati@gmail.com',
+            to: email,
+            subject: 'JobMithra Registration OTP',
+            text: `Welcome to JobMithra, ${name}!\n\nYour 6-digit verification code is: ${otp}\n\nThis code is valid for 10 minutes.`
+        };
+
+        transporter.sendMail(mailOptions, (error) => {
+            if (error) {
+                console.error('Email error:', error);
+                return res.status(500).json({ message: 'Error sending verification email' });
+            }
+            res.json({ message: 'Verification OTP sent to your email.' });
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Register Verify
+app.post('/api/register-verify', async (req, res) => {
+    const { email, otp } = req.body;
+
+    try {
+        const user = await User.findOne({
+            email,
+            verificationOTP: otp,
+            verificationOTPExpire: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid or expired OTP' });
+        }
+
+        user.isVerified = true;
+        user.verificationOTP = null;
+        user.verificationOTPExpire = null;
+        user.rolesSuited = ['Frontend Developer', 'Full Stack Engineer']; // Initial mock
+        await user.save();
+
+        res.json({
             _id: user.id,
             name: user.name,
             email: user.email,
@@ -94,7 +149,7 @@ app.post('/api/register', async (req, res) => {
             dailyJobsAppliedCount: user.dailyJobsAppliedCount,
             acceptedCount: user.acceptedCount,
             rejectedCount: user.rejectedCount,
-            message: 'User registered successfully'
+            message: 'Email verified and registration complete!'
         });
     } catch (err) {
         console.error(err.message);
@@ -110,6 +165,10 @@ app.post('/api/login', async (req, res) => {
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        if (!user.isVerified) {
+            return res.status(401).json({ message: 'Account not verified. Please verify your email.' });
         }
 
         const isMatch = await user.matchPassword(password);
