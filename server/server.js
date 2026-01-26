@@ -10,6 +10,7 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const { encrypt, decrypt } = require('./utils/encryption');
 const { spawn } = require('child_process');
+const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
 
 const app = express();
 
@@ -472,8 +473,8 @@ app.post('/api/save-linkedin-credentials', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error(err);
-        res.status(500).send('Server Error');
+        console.error("Auto-Pilot API Error:", err);
+        res.status(500).json({ message: 'Server Error', error: err.message });
     }
 });
 
@@ -638,7 +639,8 @@ app.post('/api/save-preferences', async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).send('Server Error');
+        console.error("Preferences API Error:", err);
+        res.status(500).json({ message: 'Server Error', error: err.message });
     }
 });
 
@@ -725,7 +727,8 @@ app.post('/api/start-single-apply', async (req, res) => {
             }
         });
     } catch (err) {
-        res.status(500).send('Server Error');
+        console.error("Single Apply API Error:", err);
+        res.status(500).json({ message: 'Server Error', error: err.message });
     }
 });
 
