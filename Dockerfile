@@ -17,9 +17,10 @@ ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 WORKDIR /app
 
 # Install client dependencies
-COPY package*.json ./
-# Use --include=optional to ensure rollup binaries for Linux are installed
-RUN npm install --include=optional
+# We ONLY copy package.json and NOT package*.json to avoid copying a Windows package-lock.json
+# which can cause "Cannot find module @rollup/rollup-linux-x64-gnu" errors.
+COPY package.json ./
+RUN npm install
 
 # Copy client source and build
 COPY . .
@@ -27,7 +28,7 @@ RUN npm run build
 
 # Install server dependencies
 WORKDIR /app/server
-COPY server/package*.json ./
+COPY server/package.json ./
 RUN npm install
 
 # Install Python dependencies
