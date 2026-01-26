@@ -378,7 +378,13 @@ app.post('/api/analyze-resume', async (req, res) => {
         ]);
 
         const responseText = result.response.text();
-        const jsonResponse = JSON.parse(responseText.replace(/```json|```/g, '').trim());
+        let jsonResponse;
+        try {
+            jsonResponse = JSON.parse(responseText.replace(/```json|```/g, '').trim());
+        } catch (parseError) {
+            console.error("AI Response Parse Error:", parseError, "Raw Text:", responseText);
+            return res.status(500).json({ message: 'Failed to parse AI response', error: parseError.message });
+        }
 
         // Update user in database
         if (jsonResponse.name) user.name = jsonResponse.name;
@@ -544,9 +550,12 @@ app.post('/api/start-auto-apply', async (req, res) => {
         pythonProcess.on('close', async (code) => {
             console.log(`Python process exited with code ${code}`);
             try {
-                const lines = output.trim().split('\n');
-                const lastLine = lines[lines.length - 1];
-                const resultData = JSON.parse(lastLine);
+                // Improved JSON parsing: find the last JSON block in the output
+                const jsonMatch = output.match(/\{[\s\S]*\}/g);
+                if (!jsonMatch) {
+                    throw new Error("No valid JSON found in automation output.");
+                }
+                const resultData = JSON.parse(jsonMatch[jsonMatch.length - 1]);
 
                 if (resultData.error) {
                     return res.status(500).json({ message: `Automation Error: ${resultData.error}` });
@@ -674,9 +683,11 @@ app.post('/api/start-single-apply', async (req, res) => {
 
         pythonProcess.on('close', async (code) => {
             try {
-                const lines = output.trim().split('\n');
-                const lastLine = lines.pop();
-                const resultData = JSON.parse(lastLine);
+                const jsonMatch = output.match(/\{[\s\S]*\}/g);
+                if (!jsonMatch) {
+                    throw new Error("No valid JSON found in automation output.");
+                }
+                const resultData = JSON.parse(jsonMatch[jsonMatch.length - 1]);
 
                 if (resultData.results && Array.isArray(resultData.results) && resultData.results.length > 0) {
                     const firstResult = resultData.results[0];

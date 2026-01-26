@@ -18,7 +18,8 @@ WORKDIR /app
 
 # Install client dependencies
 COPY package*.json ./
-RUN npm install
+# Use --include=optional to ensure rollup binaries for Linux are installed
+RUN npm install --include=optional
 
 # Copy client source and build
 COPY . .

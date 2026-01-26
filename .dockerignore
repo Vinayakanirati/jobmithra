@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.env
+npm-debug.log
+chrome_profile
+server/node_modules
+server/__pycache__
+server/automation/__pycache__
+server/automation/tools/__pycache__
