@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 const Preferences = () => {
     const { user, updateUser } = useAuth();
     const [formData, setFormData] = useState({
+        name: user?.name || '',
         role: user?.preferredRole || '',
         location: user?.preferredLocation || '',
         experience: user?.preferredExperience || ''
@@ -22,6 +23,7 @@ const Preferences = () => {
 
     const validate = () => {
         const newErrors = {};
+        if (!formData.name) newErrors.name = 'Full Name is required';
         if (!formData.role) newErrors.role = 'Desired Role is required';
         if (!formData.location) newErrors.location = 'Location is required';
         if (!formData.experience) newErrors.experience = 'Experience is required';
@@ -32,6 +34,7 @@ const Preferences = () => {
     useEffect(() => {
         if (user) {
             setFormData({
+                name: user.name || '',
                 role: user.preferredRole || '',
                 location: user.preferredLocation || '',
                 experience: user.preferredExperience || ''
@@ -48,6 +51,7 @@ const Preferences = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email: user.email,
+                    name: formData.name,
                     role: formData.role,
                     location: formData.location,
                     experience: formData.experience
@@ -100,6 +104,28 @@ const Preferences = () => {
             <h2 className="animate-fall-in" style={{ marginBottom: '2rem', fontFamily: 'Outfit', color: 'white' }}>Job Preferences</h2>
 
             <GravityCard delay={0.1}>
+                <div className="animate-fall-in" style={{ animationDelay: '0.1s', marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Full Name</label>
+                    <input
+                        type="text"
+                        placeholder="Your Full Name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        style={{
+                            width: '100%',
+                            background: 'var(--glass-bg)',
+                            border: errors.name ? '1px solid #ff4444' : '1px solid var(--glass-border)',
+                            padding: '1rem',
+                            borderRadius: '8px',
+                            color: 'white',
+                            fontFamily: 'Inter',
+                            outline: 'none',
+                            transition: 'all 0.3s'
+                        }}
+                    />
+                    {errors.name && <span style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: '0.2rem' }}>{errors.name}</span>}
+                </div>
+
                 {user?.skills?.length > 0 && (
                     <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'rgba(0, 243, 255, 0.05)', borderRadius: '8px', border: '1px solid rgba(0, 243, 255, 0.2)' }}>
                         <p style={{ fontSize: '0.85rem', color: 'var(--accent-cyan)', marginBottom: '0.5rem', fontWeight: 'bold' }}>Based on your resume skills:</p>

@@ -633,11 +633,12 @@ app.post('/api/start-auto-apply', async (req, res) => {
 
 // Save Job Preferences
 app.post('/api/save-preferences', async (req, res) => {
-    const { email, role, location, experience } = req.body;
+    const { email, role, location, experience, name } = req.body;
     try {
         const user = await User.findOne({ email });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
+        if (name) user.name = name;
         user.preferredRole = role;
         user.preferredLocation = location;
         user.preferredExperience = experience;
@@ -646,6 +647,7 @@ app.post('/api/save-preferences', async (req, res) => {
         res.json({
             message: 'Preferences saved successfully',
             user: {
+                name: user.name,
                 preferredRole: user.preferredRole,
                 preferredLocation: user.preferredLocation,
                 preferredExperience: user.preferredExperience
