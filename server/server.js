@@ -726,7 +726,9 @@ app.post('/api/start-single-apply', async (req, res) => {
 });
 
 // Final catch-all route to serve the frontend (for React routing)
-app.get('/:path*', (req, res) => {
+// Using app.use() without a path matches all remaining requests, 
+// bypassing Express 5 path-to-regexp parsing issues.
+app.use((req, res) => {
     res.sendFile(path.join(__dirname, '../dist', 'index.html'));
 });
 
