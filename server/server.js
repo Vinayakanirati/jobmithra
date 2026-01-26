@@ -480,7 +480,7 @@ app.post('/api/save-linkedin-credentials', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error("Auto-Pilot API Error:", err);
+        console.error("LinkedIn Save Error:", err);
         res.status(500).json({ message: 'Server Error', error: err.message });
     }
 });

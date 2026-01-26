@@ -207,6 +207,69 @@ const Preferences = () => {
                     Save Preferences
                 </button>
             </GravityCard>
+            <GravityCard delay={0.2} style={{ marginTop: '2rem' }}>
+                <h3 style={{ color: 'var(--accent-violet)', marginBottom: '1.2rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    🤖 Agent Settings
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                    Provide your LinkedIn credentials so the AI agent can apply on your behalf. These are stored with bank-grade encryption.
+                </p>
+
+                <div className="animate-fall-in" style={{ animationDelay: '0.1s', marginBottom: '1.2rem' }}>
+                    <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.85rem' }}>LinkedIn Email</label>
+                    <input
+                        type="email"
+                        placeholder="your-linkedin@email.com"
+                        value={lEmail}
+                        onChange={(e) => setLEmail(e.target.value)}
+                        style={{
+                            width: '100%',
+                            background: 'var(--glass-bg)',
+                            border: '1px solid var(--glass-border)',
+                            padding: '0.8rem',
+                            borderRadius: '8px',
+                            color: 'white',
+                            outline: 'none'
+                        }}
+                    />
+                </div>
+
+                <div className="animate-fall-in" style={{ animationDelay: '0.2s', marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.85rem' }}>LinkedIn Password</label>
+                    <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={lPassword}
+                        onChange={(e) => setLPassword(e.target.value)}
+                        style={{
+                            width: '100%',
+                            background: 'var(--glass-bg)',
+                            border: '1px solid var(--glass-border)',
+                            padding: '0.8rem',
+                            borderRadius: '8px',
+                            color: 'white',
+                            outline: 'none'
+                        }}
+                    />
+                </div>
+
+                <button
+                    onClick={handleLinkedInSave}
+                    style={{
+                        width: '100%',
+                        padding: '0.8rem',
+                        background: 'transparent',
+                        border: '1px solid var(--accent-violet)',
+                        color: 'var(--accent-violet)',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s'
+                    }}
+                >
+                    Save LinkedIn Settings
+                </button>
+            </GravityCard>
         </div>
     );
 };
