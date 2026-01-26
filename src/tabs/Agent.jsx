@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import GravityCard from '../components/GravityCard';
 import { useAuth } from '../context/AuthContext';
+import { io } from 'socket.io-client';
 
 const TimelineItem = ({ company, role, status, date, delay, isMatch = false, onApply = null, isApplying = false, matchScore = null }) => (
     <div style={{ display: 'flex', marginBottom: '2rem' }}>
@@ -87,13 +88,37 @@ const Agent = () => {
     const [isAutoApplying, setIsAutoApplying] = useState(false);
     const [localApplied, setLocalApplied] = useState([]);
 
+    // Hybrid Remote View State
+    const [liveFrame, setLiveFrame] = useState(null);
+    const [showHUD, setShowHUD] = useState(false);
+    const socketRef = useRef(null);
+
     // Cover Letter State
     const [draftingId, setDraftingId] = useState(null);
     const [activeLetter, setActiveLetter] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    useEffect(() => {
+        // Initialize Socket.IO connection
+        // In local dev, it's localhost:5000. In production, it's the same origin.
+        const socketUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : window.location.origin;
+        socketRef.current = io(socketUrl);
+
+        socketRef.current.on('agent-view', (data) => {
+            if (data.image) {
+                setLiveFrame(`data:image/png;base64,${data.image}`);
+                setShowHUD(true);
+            }
+        });
+
+        return () => {
+            if (socketRef.current) socketRef.current.disconnect();
+        };
+    }, []);
+
     const handleSingleApply = async (job, index) => {
         setApplyingId(index);
+        setShowHUD(true); // Open HUD to show progress
         try {
             const res = await fetch('/api/start-single-apply', {
                 method: 'POST',
@@ -119,6 +144,7 @@ const Agent = () => {
         if (!window.confirm("Start AI Auto-Pilot? This will attempt to apply to up to 5 recommended jobs automatically.")) return;
 
         setIsAutoApplying(true);
+        setShowHUD(true);
         try {
             const res = await fetch('/api/start-auto-apply', {
                 method: 'POST',
@@ -176,31 +202,92 @@ const Agent = () => {
     });
 
     return (
-        <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '2rem' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '2rem', paddingBottom: '10rem' }}>
+
+            {/* Hybrid Remote View HUD */}
+            {showHUD && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: '2rem',
+                    right: '2rem',
+                    width: '320px',
+                    height: '240px',
+                    zIndex: 1000,
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    background: '#000',
+                    border: '2px solid var(--accent-blue)',
+                    boxShadow: '0 0 30px rgba(0, 243, 255, 0.3)',
+                    display: 'flex',
+                    flexDirection: 'column'
+                }}>
+                    <div style={{
+                        padding: '0.5rem 1rem',
+                        background: 'var(--accent-blue)',
+                        color: 'black',
+                        fontSize: '0.8rem',
+                        fontWeight: 'bold',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                    }}>
+                        <span>🤖 AGENT LIVE HUD</span>
+                        <button onClick={() => setShowHUD(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>×</button>
+                    </div>
+                    <div style={{ flex: 1, position: 'relative', background: '#0a192f', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {liveFrame ? (
+                            <img src={liveFrame} alt="Agent View" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        ) : (
+                            <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                                <div className="animate-pulse">🔄 Connecting to Agent...</div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h2 className="animate-fall-in" style={{ margin: 0, fontFamily: 'Outfit', color: 'white' }}>Application Agent</h2>
-                {matches.length > 0 && (
-                    <button
-                        onClick={handleAutoApply}
-                        disabled={isAutoApplying}
-                        style={{
-                            background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-violet))',
-                            border: 'none',
-                            color: 'white',
-                            padding: '0.8rem 1.5rem',
-                            borderRadius: '30px',
-                            fontWeight: 'bold',
-                            cursor: isAutoApplying ? 'wait' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            boxShadow: '0 0 20px rgba(0, 243, 255, 0.4)',
-                            transition: 'all 0.3s'
-                        }}
-                    >
-                        {isAutoApplying ? '🚀 Auto-Pilot Active...' : '🚀 Start AI Auto-Pilot'}
-                    </button>
-                )}
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    {liveFrame && !showHUD && (
+                        <button
+                            onClick={() => setShowHUD(true)}
+                            style={{
+                                background: 'rgba(0, 243, 255, 0.1)',
+                                border: '1px solid var(--accent-blue)',
+                                color: 'var(--accent-blue)',
+                                padding: '0.5rem 1rem',
+                                borderRadius: '20px',
+                                fontSize: '0.8rem',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            👁️ Restore HUD
+                        </button>
+                    )}
+                    {matches.length > 0 && (
+                        <button
+                            onClick={handleAutoApply}
+                            disabled={isAutoApplying}
+                            style={{
+                                background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-violet))',
+                                border: 'none',
+                                color: 'white',
+                                padding: '0.8rem 1.5rem',
+                                borderRadius: '30px',
+                                fontWeight: 'bold',
+                                cursor: isAutoApplying ? 'wait' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                boxShadow: '0 0 20px rgba(0, 243, 255, 0.4)',
+                                transition: 'all 0.3s'
+                            }}
+                        >
+                            {isAutoApplying ? '🚀 Auto-Pilot Active...' : '🚀 Start AI Auto-Pilot'}
+                        </button>
+                    )}
+                </div>
             </div>
 
             <section style={{ marginBottom: '3rem' }}>

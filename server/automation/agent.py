@@ -9,9 +9,16 @@ if current_dir not in sys.path:
     sys.path.append(current_dir)
 
 from adk import Agent
-from tools.linkedin_login import linkedin_login, get_driver
+from tools.linkedin_login import linkedin_login, get_driver, take_screenshot
 from tools.captcha_detector import detect_captcha
 from tools.auto_apply import auto_apply
+import threading
+
+def stream_screenshots(stop_event):
+    """Periodically takes screenshots in the background"""
+    while not stop_event.is_set():
+        take_screenshot()
+        time.sleep(2) # Stream every 2 seconds
 
 def main():
     # Read input data from stdin
@@ -35,18 +42,27 @@ def main():
             tools=[linkedin_login, detect_captcha, auto_apply]
         )
 
+        # Start streaming thread
+        stop_event = threading.Event()
+        stream_thread = threading.Thread(target=stream_screenshots, args=(stop_event,), daemon=True)
+        stream_thread.start()
+
         # 1. Login
         sys.stderr.write(f"Logging in as {email}...\n")
+        take_screenshot()
         login_result = job_agent.run(linkedin_login, email=email, password=password)
         sys.stderr.write(f"{login_result}\n")
+        take_screenshot()
         
         if "VERIFICATION_REQUIRED" in login_result:
-            sys.stderr.write("Verification required. Pausing for 60 seconds to allow manual code entry...\n")
-            time.sleep(60)
+            sys.stderr.write("Verification required. Waiting for user interaction or code...\n")
+            # We'll wait longer here, letting the user see the screen via Remote View
+            time.sleep(60) 
 
         driver = get_driver()
         if not driver:
             print(json.dumps({"error": "Failed to initialize driver."}))
+            stop_event.set()
             return
 
         # 2. Process jobs
@@ -71,14 +87,16 @@ def main():
                 continue
 
             sys.stderr.write(f"Applying for: {job.get('title')} at {job.get('company')}\n")
+            take_screenshot()
             
             while True:
                 sys.stderr.write(f"Executing auto_apply tool for: {job_url}\n")
                 result = job_agent.run(auto_apply, driver=driver, linkedin_url=job_url, user_data=profile_data)
                 sys.stderr.write(f"Tool Result: {result}\n")
+                take_screenshot()
                 
                 if "CAPTCHA" in result:
-                    sys.stderr.write("CAPTCHA detected. Waiting 30 seconds...\n")
+                    sys.stderr.write("CAPTCHA detected. User can solve via Remote View if visible.\n")
                     time.sleep(30) 
                     if job_agent.run(detect_captcha, driver=driver) == "NO_CAPTCHA":
                         sys.stderr.write("CAPTCHA resolved. Retrying...\n")
@@ -96,7 +114,11 @@ def main():
                     sys.stderr.write(f"Application incomplete/failed: {result[:50]}\n")
                     results.append({"title": job.get('title'), "company": job.get('company'), "url": job_url, "status": f"Partial/Manual ({result[:20]}...)"})
                     break
+            
+            take_screenshot()
 
+        # Stop streaming and quit
+        stop_event.set()
         if driver:
             driver.quit()
         
@@ -107,6 +129,7 @@ def main():
         # Use stderr for error logging and print JSON error to stdout
         sys.stderr.write(f"Python Exception: {str(e)}\n")
         print(json.dumps({"error": str(e)}))
+        if 'stop_event' in locals(): stop_event.set()
 
 if __name__ == "__main__":
     main()

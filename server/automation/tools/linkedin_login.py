@@ -81,3 +81,20 @@ def linkedin_login(email: str, password: str):
 
 def get_driver():
     return driver
+
+def take_screenshot():
+    """
+    Captures the current browser state and prints it as a base64 string
+    for real-time streaming to the frontend.
+    """
+    global driver
+    if driver:
+        try:
+            # Optimize: Only take screenshot if page is stable
+            base64_image = driver.get_screenshot_as_base64()
+            # Use sys.stdout to send the data to the Node.js bridge
+            import sys
+            print(f"SCREENSHOT:{base64_image}")
+        except Exception as e:
+            import sys
+            sys.stderr.write(f"Screenshot error: {str(e)}\n")

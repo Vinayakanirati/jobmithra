@@ -13,6 +13,13 @@ const { spawn } = require('child_process');
 const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
 
 const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 
 // Nodemailer transporter (using vinayakanirati@gmail.com)
 // Note: User prompt mentions vinayakanirati@gmail.com
@@ -543,7 +550,13 @@ app.post('/api/start-auto-apply', async (req, res) => {
 
         let output = '';
         pythonProcess.stdout.on('data', (data) => {
-            output += data.toString();
+            const raw = data.toString();
+            if (raw.startsWith('SCREENSHOT:')) {
+                const base64 = raw.replace('SCREENSHOT:', '').trim();
+                io.emit('agent-view', { image: base64 });
+            } else {
+                output += raw;
+            }
         });
 
         pythonProcess.stderr.on('data', (data) => {
@@ -684,7 +697,15 @@ app.post('/api/start-single-apply', async (req, res) => {
         pythonProcess.stdin.end();
 
         let output = '';
-        pythonProcess.stdout.on('data', (data) => output += data.toString());
+        pythonProcess.stdout.on('data', (data) => {
+            const raw = data.toString();
+            if (raw.startsWith('SCREENSHOT:')) {
+                const base64 = raw.replace('SCREENSHOT:', '').trim();
+                io.emit('agent-view', { image: base64 });
+            } else {
+                output += raw;
+            }
+        });
         pythonProcess.stderr.on('data', (data) => console.error(`Python Error: ${data}`));
 
         pythonProcess.on('close', async (code) => {
@@ -781,4 +802,4 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => console.log(`Server started on port ${PORT}. Ensure MongoDB URI is set in .env`));
+http.listen(PORT, () => console.log(`Server started on port ${PORT}. Ensure MongoDB URI is set in .env`));
