@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
     const login = async (userData) => {
         setError(null);
         try {
-            const response = await fetch('http://localhost:5000/api/login', {
+            const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
     const registerInit = async (userData) => {
         setError(null);
         try {
-            const response = await fetch('http://localhost:5000/api/register-init', {
+            const response = await fetch('/api/register-init', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }) => {
     const registerVerify = async (email, otp) => {
         setError(null);
         try {
-            const response = await fetch('http://localhost:5000/api/register-verify', {
+            const response = await fetch('/api/register-verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, otp })

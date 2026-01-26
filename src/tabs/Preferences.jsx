@@ -43,7 +43,7 @@ const Preferences = () => {
     const handleSavePreferences = async () => {
         if (!validate()) return;
         try {
-            const res = await fetch('http://localhost:5000/api/save-preferences', {
+            const res = await fetch('/api/save-preferences', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -67,7 +67,7 @@ const Preferences = () => {
 
     const handleLinkedInSave = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/save-linkedin-credentials', {
+            const res = await fetch('/api/save-linkedin-credentials', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: user.email, lEmail, lPassword })
@@ -82,7 +82,7 @@ const Preferences = () => {
     const handleStartAutoApply = async () => {
         setIsAutoApplying(true);
         try {
-            const res = await fetch('http://localhost:5000/api/start-auto-apply', {
+            const res = await fetch('/api/start-auto-apply', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: user.email })

@@ -85,11 +85,12 @@ const Agent = () => {
     const { user, updateUser } = useAuth();
     const [applyingId, setApplyingId] = useState(null);
     const [isAutoApplying, setIsAutoApplying] = useState(false);
+    const [localApplied, setLocalApplied] = useState([]);
 
     const handleSingleApply = async (job, index) => {
         setApplyingId(index);
         try {
-            const res = await fetch('http://localhost:5000/api/start-single-apply', {
+            const res = await fetch('/api/start-single-apply', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: user.email, job })
@@ -114,7 +115,7 @@ const Agent = () => {
 
         setIsAutoApplying(true);
         try {
-            const res = await fetch('http://localhost:5000/api/start-auto-apply', {
+            const res = await fetch('/api/start-auto-apply', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: user.email })
