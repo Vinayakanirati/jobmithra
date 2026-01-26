@@ -726,7 +726,7 @@ app.post('/api/start-single-apply', async (req, res) => {
 });
 
 // Final catch-all route to serve the frontend (for React routing)
-app.get('*', (req, res) => {
+app.get('(.*)', (req, res) => {
     res.sendFile(path.join(__dirname, '../dist', 'index.html'));
 });
 
