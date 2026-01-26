@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const User = require('./models/User');
@@ -25,6 +26,9 @@ const transporter = nodemailer.createTransport({
 // Middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(cors());
+
+// Serve static files from the React app dist folder
+app.use(express.static(path.join(__dirname, '../dist')));
 
 // Connect to MongoDB
 // Connect to MongoDB
@@ -497,8 +501,8 @@ app.post('/api/start-auto-apply', async (req, res) => {
 
         const password = decrypt(user.linkedinPassword);
 
-        // Spawn Python process
-        const pythonProcess = spawn('python', ['./automation/agent.py']);
+        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+        const pythonProcess = spawn(pythonCmd, ['./automation/agent.py']);
 
         const inputData = JSON.stringify({
             email: user.linkedinEmail,
@@ -639,7 +643,8 @@ app.post('/api/start-single-apply', async (req, res) => {
         }
 
         const password = decrypt(user.linkedinPassword);
-        const pythonProcess = spawn('python', ['./automation/agent.py']);
+        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+        const pythonProcess = spawn(pythonCmd, ['./automation/agent.py']);
 
         const inputData = JSON.stringify({
             email: user.linkedinEmail,
@@ -707,6 +712,11 @@ app.post('/api/start-single-apply', async (req, res) => {
     } catch (err) {
         res.status(500).send('Server Error');
     }
+});
+
+// Final catch-all route to serve the frontend (for React routing)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist', 'index.html'));
 });
 
 const PORT = process.env.PORT || 5000;

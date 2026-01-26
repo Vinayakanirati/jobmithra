@@ -18,7 +18,15 @@ def linkedin_login(email: str, password: str):
     global driver
     if not driver:
         options = Options()
-        # options.add_argument("--headless") # Uncomment for headless mode
+        
+        # Performance/Production optimizations
+        if os.name != 'nt': # Linux/Docker
+            options.add_argument("--headless")
+            options.add_argument("--disable-gpu")
+            options.binary_location = os.environ.get("CHROME_BIN", "/usr/bin/chromium")
+            service = Service(os.environ.get("CHROMEDRIVER_PATH", "/usr/bin/chromedriver"))
+        else:
+            service = Service(ChromeDriverManager().install())
         
         # Use a persistent Chrome profile
         profile_path = os.path.join(os.getcwd(), "chrome_profile")
@@ -29,7 +37,7 @@ def linkedin_login(email: str, password: str):
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver = webdriver.Chrome(service=service, options=options)
 
     driver.get("https://www.linkedin.com/feed/")
     time.sleep(3)
