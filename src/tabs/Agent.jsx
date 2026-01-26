@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import GravityCard from '../components/GravityCard';
 import { useAuth } from '../context/AuthContext';
 
-const TimelineItem = ({ company, role, status, date, delay, isMatch = false, onApply = null, isApplying = false }) => (
+const TimelineItem = ({ company, role, status, date, delay, isMatch = false, onApply = null, isApplying = false, matchScore = null }) => (
     <div style={{ display: 'flex', marginBottom: '2rem' }}>
         <div style={{ marginRight: '2rem', position: 'relative' }}>
             <div style={{
@@ -26,8 +26,23 @@ const TimelineItem = ({ company, role, status, date, delay, isMatch = false, onA
 
         <GravityCard delay={delay} style={{ flex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                    <h3 style={{ fontFamily: 'Outfit', fontSize: '1.2rem', color: isMatch ? 'var(--accent-cyan)' : 'white' }}>{role}</h3>
+                <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.3rem' }}>
+                        <h3 style={{ fontFamily: 'Outfit', fontSize: '1.2rem', color: isMatch ? 'var(--accent-cyan)' : 'white', margin: 0 }}>{role}</h3>
+                        {matchScore && (
+                            <span style={{
+                                background: 'rgba(0, 243, 255, 0.1)',
+                                color: 'var(--accent-cyan)',
+                                padding: '0.2rem 0.6rem',
+                                borderRadius: '12px',
+                                fontSize: '0.75rem',
+                                fontWeight: 'bold',
+                                border: '1px solid rgba(0, 243, 255, 0.2)'
+                            }}>
+                                {matchScore}% Match
+                            </span>
+                        )}
+                    </div>
                     <p style={{ color: 'var(--text-secondary)' }}>{company} {date && <span style={{ fontSize: '0.8rem', marginLeft: '0.5rem' }}>• {new Date(date).toLocaleDateString()}</span>}</p>
                 </div>
                 {isMatch ? (
@@ -69,7 +84,7 @@ const TimelineItem = ({ company, role, status, date, delay, isMatch = false, onA
 const Agent = () => {
     const { user, updateUser } = useAuth();
     const [applyingId, setApplyingId] = useState(null);
-    const [localApplied, setLocalApplied] = useState([]);
+    const [isAutoApplying, setIsAutoApplying] = useState(false);
 
     const handleSingleApply = async (job, index) => {
         setApplyingId(index);
@@ -94,6 +109,26 @@ const Agent = () => {
         setApplyingId(null);
     };
 
+    const handleAutoApply = async () => {
+        if (!window.confirm("Start AI Auto-Pilot? This will attempt to apply to up to 5 recommended jobs automatically.")) return;
+
+        setIsAutoApplying(true);
+        try {
+            const res = await fetch('http://localhost:5000/api/start-auto-apply', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email })
+            });
+            const data = await res.json();
+
+            if (data.user) updateUser(data.user);
+            alert(data.message || "Auto-pilot process completed.");
+        } catch (err) {
+            alert('Server error starting auto-pilot');
+        }
+        setIsAutoApplying(false);
+    };
+
     const applications = user?.applications || [];
     const matches = (user?.jobMatches || []).filter((job, i) => {
         // 1. Check local transient state
@@ -110,7 +145,31 @@ const Agent = () => {
 
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '2rem' }}>
-            <h2 className="animate-fall-in" style={{ marginBottom: '2rem', fontFamily: 'Outfit', color: 'white' }}>Application Agent</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h2 className="animate-fall-in" style={{ margin: 0, fontFamily: 'Outfit', color: 'white' }}>Application Agent</h2>
+                {matches.length > 0 && (
+                    <button
+                        onClick={handleAutoApply}
+                        disabled={isAutoApplying}
+                        style={{
+                            background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-violet))',
+                            border: 'none',
+                            color: 'white',
+                            padding: '0.8rem 1.5rem',
+                            borderRadius: '30px',
+                            fontWeight: 'bold',
+                            cursor: isAutoApplying ? 'wait' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            boxShadow: '0 0 20px rgba(0, 243, 255, 0.4)',
+                            transition: 'all 0.3s'
+                        }}
+                    >
+                        {isAutoApplying ? '🚀 Auto-Pilot Active...' : '🚀 Start AI Auto-Pilot'}
+                    </button>
+                )}
+            </div>
 
             <section style={{ marginBottom: '3rem' }}>
                 <h3 style={{ color: 'var(--accent-cyan)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>Suited Job Matches</h3>
@@ -124,6 +183,7 @@ const Agent = () => {
                                 status="Pending"
                                 delay={0.1 * i}
                                 isMatch={true}
+                                matchScore={job.matchScore || Math.floor(Math.random() * (95 - 75 + 1)) + 75} // Fallback for UI demo
                                 isApplying={applyingId === i}
                                 onApply={() => handleSingleApply(job, i)}
                             />

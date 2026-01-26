@@ -104,6 +104,30 @@ const Dashboard = () => {
                     </ul>
                 </GravityCard>
             </div>
+
+            <div style={{ marginTop: '1.5rem' }}>
+                <GravityCard delay={0.6}>
+                    <h3 style={{ marginBottom: '1.5rem', fontSize: '1rem', color: 'var(--accent-blue)' }}>Recent Activity</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {user?.applications && user.applications.length > 0 ? (
+                            user.applications.slice().reverse().slice(0, 3).map((app, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.8rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', borderLeft: `3px solid ${app.status === 'Applied' ? '#00ff88' : 'var(--accent-blue)'}` }}>
+                                    <div>
+                                        <div style={{ color: 'white', fontWeight: 'bold', fontSize: '0.9rem' }}>{app.role}</div>
+                                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{app.company}</div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ color: app.status === 'Applied' ? '#00ff88' : 'var(--accent-blue)', fontSize: '0.8rem', fontWeight: 'bold' }}>{app.status}</div>
+                                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>{new Date(app.date).toLocaleDateString()}</div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', py: '1rem' }}>No recent activity to show.</p>
+                        )}
+                    </div>
+                </GravityCard>
+            </div>
         </div>
     );
 };

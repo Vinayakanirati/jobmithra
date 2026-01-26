@@ -360,7 +360,7 @@ app.post('/api/analyze-resume', async (req, res) => {
                 "achievements": ["Cert A", "Won B", ...],
                 "rolesSuited": ["Frontend Developer", ...],
                 "jobMatches": [
-                    {"title": "Role Title", "company": "Company Name", "level": "Junior", "link": "https://www.linkedin.com/jobs/search/?f_AL=true&keywords=..." },
+                    {"title": "Role Title", "company": "Company Name", "level": "Junior", "link": "https://www.linkedin.com/jobs/search/?f_AL=true&keywords=...", "matchScore": 85 },
                     ...
                 ]
             }
