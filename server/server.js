@@ -507,8 +507,10 @@ app.post('/api/start-auto-apply', async (req, res) => {
 
         const password = decrypt(user.linkedinPassword);
 
-        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-        const pythonProcess = spawn(pythonCmd, ['./automation/agent.py']);
+        const scriptPath = path.join(__dirname, 'automation', 'agent.py');
+        const pythonProcess = spawn(pythonCmd, [scriptPath], {
+            env: { ...process.env, PYTHONUNBUFFERED: '1' }
+        });
 
         const inputData = JSON.stringify({
             email: user.linkedinEmail,
@@ -652,8 +654,10 @@ app.post('/api/start-single-apply', async (req, res) => {
         }
 
         const password = decrypt(user.linkedinPassword);
-        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-        const pythonProcess = spawn(pythonCmd, ['./automation/agent.py']);
+        const scriptPath = path.join(__dirname, 'automation', 'agent.py');
+        const pythonProcess = spawn(pythonCmd, [scriptPath], {
+            env: { ...process.env, PYTHONUNBUFFERED: '1' }
+        });
 
         const inputData = JSON.stringify({
             email: user.linkedinEmail,
@@ -722,6 +726,46 @@ app.post('/api/start-single-apply', async (req, res) => {
         });
     } catch (err) {
         res.status(500).send('Server Error');
+    }
+});
+
+// Generate AI Cover Letter
+app.post('/api/generate-cover-letter', async (req, res) => {
+    const { email, job } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+        const prompt = `
+            Draft a professional and concise cover letter for the following job application:
+            
+            Job Title: ${job.title}
+            Company: ${job.company}
+            
+            Candidate Details:
+            Name: ${user.name}
+            Skills: ${user.skills.join(', ')}
+            Achievements: ${user.achievements.join('. ')}
+            Experience Level: ${user.experienceLevel}
+            
+            The letter should be professional, highlighting relevant skills and achievements for the role. 
+            Keep it under 300 words. Do not include placeholders like [Date] or [Address].
+            Start directly with "Dear Hiring Manager," or similar.
+        `;
+
+        const result = await model.generateContent(prompt);
+        const letter = result.response.text();
+
+        res.json({ letter });
+    } catch (err) {
+        console.error("Cover letter generation failed:", err);
+        res.status(500).json({ message: 'Failed to generate cover letter', error: err.message });
     }
 });
 

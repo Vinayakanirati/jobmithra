@@ -29,13 +29,22 @@ def linkedin_login(email: str, password: str):
             service = Service(ChromeDriverManager().install())
         
         # Use a persistent Chrome profile
-        profile_path = os.path.join(os.getcwd(), "chrome_profile")
+        # On Render/Linux, /tmp is more reliable for volatile data
+        if os.name != 'nt':
+            profile_path = "/tmp/chrome_profile"
+        else:
+            profile_path = os.path.join(os.getcwd(), "chrome_profile")
+            
         if not os.path.exists(profile_path):
-            os.makedirs(profile_path)
+            try:
+                os.makedirs(profile_path)
+            except: pass
         
         options.add_argument(f"user-data-dir={profile_path}")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--remote-debugging-port=9222") # Helps with some containerized environments
         
         driver = webdriver.Chrome(service=service, options=options)
 

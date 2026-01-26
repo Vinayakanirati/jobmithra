@@ -87,6 +87,11 @@ const Agent = () => {
     const [isAutoApplying, setIsAutoApplying] = useState(false);
     const [localApplied, setLocalApplied] = useState([]);
 
+    // Cover Letter State
+    const [draftingId, setDraftingId] = useState(null);
+    const [activeLetter, setActiveLetter] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
     const handleSingleApply = async (job, index) => {
         setApplyingId(index);
         try {
@@ -128,6 +133,32 @@ const Agent = () => {
             alert('Server error starting auto-pilot');
         }
         setIsAutoApplying(false);
+    };
+
+    const handleDraftLetter = async (job, index) => {
+        setDraftingId(index);
+        try {
+            const res = await fetch('/api/generate-cover-letter', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email, job })
+            });
+            const data = await res.json();
+            if (data.letter) {
+                setActiveLetter({ ...job, text: data.letter });
+                setIsModalOpen(true);
+            } else {
+                alert("Failed to generate letter");
+            }
+        } catch (err) {
+            alert("Error drafting letter");
+        }
+        setDraftingId(null);
+    };
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(activeLetter.text);
+        alert("Cover letter copied to clipboard!");
     };
 
     const applications = user?.applications || [];
@@ -177,17 +208,40 @@ const Agent = () => {
                 {matches.length > 0 ? (
                     matches.map((job, i) => {
                         return (
-                            <TimelineItem
-                                key={`match-${i}`}
-                                company={job.company}
-                                role={job.title}
-                                status="Pending"
-                                delay={0.1 * i}
-                                isMatch={true}
-                                matchScore={job.matchScore || Math.floor(Math.random() * (95 - 75 + 1)) + 75} // Fallback for UI demo
-                                isApplying={applyingId === i}
-                                onApply={() => handleSingleApply(job, i)}
-                            />
+                            <div key={`match-container-${i}`} style={{ position: 'relative' }}>
+                                <TimelineItem
+                                    key={`match-${i}`}
+                                    company={job.company}
+                                    role={job.title}
+                                    status="Pending"
+                                    delay={0.1 * i}
+                                    isMatch={true}
+                                    matchScore={job.matchScore || Math.floor(Math.random() * (95 - 75 + 1)) + 75} // Fallback for UI demo
+                                    isApplying={applyingId === i}
+                                    onApply={() => handleSingleApply(job, i)}
+                                />
+                                <button
+                                    onClick={() => handleDraftLetter(job, i)}
+                                    disabled={draftingId === i}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '120px',
+                                        top: '1.8rem',
+                                        background: 'rgba(176, 38, 255, 0.1)',
+                                        border: '1px solid var(--accent-violet)',
+                                        color: 'var(--accent-violet)',
+                                        padding: '0.3rem 0.8rem',
+                                        borderRadius: '15px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 'bold',
+                                        cursor: draftingId === i ? 'wait' : 'pointer',
+                                        transition: 'all 0.3s',
+                                        zIndex: 2
+                                    }}
+                                >
+                                    {draftingId === i ? '✍️ Drafting...' : '📝 Draft Letter'}
+                                </button>
+                            </div>
                         );
                     })
                 ) : (
@@ -212,6 +266,73 @@ const Agent = () => {
                     <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>Once you apply, your journey will appear here.</p>
                 )}
             </section>
+
+            {/* Cover Letter Modal */}
+            {isModalOpen && activeLetter && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'rgba(0,0,0,0.8)',
+                    backdropFilter: 'blur(8px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10000,
+                    padding: '1rem'
+                }}>
+                    <GravityCard style={{ maxWidth: '600px', width: '100%', maxHeight: '80vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ color: 'var(--accent-violet)', margin: 0 }}>AI Cover Letter Draft</h3>
+                            <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+                        </div>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                            For <strong>{activeLetter.title}</strong> at <strong>{activeLetter.company}</strong>
+                        </p>
+                        <div style={{
+                            background: 'rgba(0,0,0,0.3)',
+                            padding: '1.5rem',
+                            borderRadius: '8px',
+                            color: 'white',
+                            fontFamily: 'Inter',
+                            lineHeight: '1.6',
+                            whiteSpace: 'pre-wrap',
+                            fontSize: '0.95rem',
+                            border: '1px solid var(--glass-border)',
+                            marginBottom: '2rem'
+                        }}>
+                            {activeLetter.text}
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button onClick={copyToClipboard} style={{
+                                flex: 1,
+                                background: 'var(--accent-blue)',
+                                border: 'none',
+                                color: 'black',
+                                padding: '0.8rem',
+                                borderRadius: '8px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer'
+                            }}>
+                                Copy to Clipboard
+                            </button>
+                            <button onClick={() => setIsModalOpen(false)} style={{
+                                flex: 1,
+                                background: 'transparent',
+                                border: '1px solid var(--text-secondary)',
+                                color: 'white',
+                                padding: '0.8rem',
+                                borderRadius: '8px',
+                                cursor: 'pointer'
+                            }}>
+                                Close
+                            </button>
+                        </div>
+                    </GravityCard>
+                </div>
+            )}
         </div>
     );
 };
