@@ -154,6 +154,7 @@ app.post('/api/register-verify', async (req, res) => {
             education: user.education,
             rolesSuited: user.rolesSuited,
             jobsApplied: user.jobsApplied,
+            applications: user.applications,
             preferredRole: user.preferredRole,
             preferredLocation: user.preferredLocation,
             preferredExperience: user.preferredExperience,
@@ -179,13 +180,36 @@ app.post('/api/login', async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        if (!user.isVerified) {
-            return res.status(401).json({ message: 'Account not verified. Please verify your email.' });
-        }
-
         const isMatch = await user.matchPassword(password);
         if (!isMatch) {
             return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        if (!user.isVerified) {
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const otpExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+            user.verificationOTP = otp;
+            user.verificationOTPExpire = otpExpire;
+            await user.save();
+
+            const mailOptions = {
+                from: 'vinayakanirati@gmail.com',
+                to: email,
+                subject: 'JobMithra Verification OTP',
+                text: `Your account is not verified yet. Your new JobMithra verification code is: ${otp}\n\nThis code is valid for 10 minutes.`
+            };
+
+            transporter.sendMail(mailOptions, (error) => {
+                if (error) {
+                    console.error('Email error:', error);
+                }
+            });
+
+            return res.status(401).json({
+                message: 'Account not verified. A verification OTP has been sent to your email.',
+                isUnverified: true
+            });
         }
 
         res.json({
@@ -200,6 +224,7 @@ app.post('/api/login', async (req, res) => {
             education: user.education,
             rolesSuited: user.rolesSuited,
             jobsApplied: user.jobsApplied,
+            applications: user.applications,
             preferredRole: user.preferredRole,
             preferredLocation: user.preferredLocation,
             preferredExperience: user.preferredExperience,
@@ -208,6 +233,42 @@ app.post('/api/login', async (req, res) => {
             acceptedCount: user.acceptedCount,
             rejectedCount: user.rejectedCount,
             message: 'Logged in successfully'
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Get Current User Profile (Session Sync)
+app.post('/api/me', async (req, res) => {
+    const { email } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        res.json({
+            _id: user.id,
+            name: user.name,
+            email: user.email,
+            resume: user.resume,
+            photo: user.photo,
+            mobile: user.mobile,
+            address: user.address,
+            skills: user.skills,
+            education: user.education,
+            rolesSuited: user.rolesSuited,
+            jobsApplied: user.jobsApplied,
+            applications: user.applications,
+            preferredRole: user.preferredRole,
+            preferredLocation: user.preferredLocation,
+            preferredExperience: user.preferredExperience,
+            linkedinEmail: user.linkedinEmail,
+            dailyJobsAppliedCount: user.dailyJobsAppliedCount,
+            acceptedCount: user.acceptedCount,
+            rejectedCount: user.rejectedCount,
+            internships: user.internships,
+            achievements: user.achievements
         });
     } catch (err) {
         console.error(err.message);
@@ -271,7 +332,7 @@ app.post('/api/reset-password', async (req, res) => {
 
 // Update Profile
 app.post('/api/update-profile', async (req, res) => {
-    const { email, resume, photo, mobile, address, skills, education, linkedinEmail, linkedinPassword } = req.body;
+    const { name, email, resume, photo, mobile, address, skills, education, linkedinEmail, linkedinPassword } = req.body;
 
     try {
         const user = await User.findOne({ email });
@@ -279,6 +340,7 @@ app.post('/api/update-profile', async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        if (name !== undefined) user.name = name;
         if (resume !== undefined) user.resume = resume;
         if (photo !== undefined) user.photo = photo;
         if (mobile !== undefined) user.mobile = mobile;
@@ -306,6 +368,7 @@ app.post('/api/update-profile', async (req, res) => {
                 education: user.education,
                 rolesSuited: user.rolesSuited,
                 jobsApplied: user.jobsApplied,
+                applications: user.applications,
                 linkedinEmail: user.linkedinEmail,
                 dailyJobsAppliedCount: user.dailyJobsAppliedCount,
                 acceptedCount: user.acceptedCount,
@@ -352,9 +415,10 @@ app.post('/api/analyze-resume', async (req, res) => {
             6. A list of internships (company, role, duration).
             7. Key achievements and certifications.
             8. Roles suited (list of titles).
-            9. Recommended LinkedIn "EASY APPLY" Job Search Links (5-10 matches). 
-               Each match MUST include the parameter "&f_AL=true" in the link to filter for Easy Apply jobs. 
-               Each match should have: title, company (or "Top Companies"), level, and the link.
+            9. Recommended Job Search Links (5-10 matches) from official platforms like **LinkedIn**, **Naukri**, **Glassdoor**, or **Indeed**.
+               - For LinkedIn, try to find "EASY APPLY" links if possible (add &f_AL=true).
+               - Provide a mix of sources.
+               - Each match should have: title, company, level, link, and **source** (e.g., "LinkedIn", "Naukri", "Glassdoor").
             
             Return the response in this JSON format strictly:
             {
@@ -368,7 +432,8 @@ app.post('/api/analyze-resume', async (req, res) => {
                 "achievements": ["Cert A", "Won B", ...],
                 "rolesSuited": ["Frontend Developer", ...],
                 "jobMatches": [
-                    {"title": "Role Title", "company": "Company Name", "level": "Junior", "link": "https://www.linkedin.com/jobs/search/?f_AL=true&keywords=...", "matchScore": 85 },
+                    {"title": "Role Title", "company": "Company Name", "level": "Junior", "link": "https://...", "source": "LinkedIn", "matchScore": 85 },
+                    {"title": "Role Title", "company": "Company Name", "level": "Junior", "link": "https://...", "source": "Naukri", "matchScore": 80 },
                     ...
                 ]
             }
@@ -482,6 +547,66 @@ app.post('/api/save-linkedin-credentials', async (req, res) => {
     } catch (err) {
         console.error("LinkedIn Save Error:", err);
         res.status(500).json({ message: 'Server Error', error: err.message });
+    }
+});
+
+// Update Application Status
+app.post('/api/update-application-status', async (req, res) => {
+    const { email, applicationId, status } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const application = user.applications.id(applicationId);
+        if (!application) return res.status(404).json({ message: 'Application not found' });
+
+        const oldStatus = application.status;
+        application.status = status;
+
+        // Update counts by recalculating from the array to ensure accuracy
+        user.acceptedCount = user.applications.filter(app => app.status === 'Accepted').length;
+        user.rejectedCount = user.applications.filter(app => app.status === 'Rejected').length;
+
+        await user.save();
+        res.json({ message: 'Status updated successfully', user });
+    } catch (err) {
+        console.error("Update Status Error:", err);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// Resend Verification OTP
+app.post('/api/resend-verification-otp', async (req, res) => {
+    const { email } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        if (user.isVerified) return res.status(400).json({ message: 'User already verified' });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpire = Date.now() + 10 * 60 * 1000;
+
+        user.verificationOTP = otp;
+        user.verificationOTPExpire = otpExpire;
+        await user.save();
+
+        const mailOptions = {
+            from: 'vinayakanirati@gmail.com',
+            to: email,
+            subject: 'JobMithra Verification OTP',
+            text: `Your JobMithra verification code is: ${otp}\n\nThis code is valid for 10 minutes.`
+        };
+
+        transporter.sendMail(mailOptions, (error) => {
+            if (error) {
+                console.error('Email error:', error);
+                return res.status(500).json({ message: 'Error sending email' });
+            }
+            res.json({ message: 'New OTP sent to your email.' });
+        });
+    } catch (err) {
+        console.error("Resend OTP Error:", err);
+        res.status(500).json({ message: 'Server Error' });
     }
 });
 
@@ -615,7 +740,29 @@ app.post('/api/start-auto-apply', async (req, res) => {
                         message: `Automation finished. Applied to ${appliedCount} jobs.`,
                         results: resultData.results,
                         dailyCount: user.dailyJobsAppliedCount,
-                        user: user // Send full user back
+                        user: {
+                            _id: user.id,
+                            name: user.name,
+                            email: user.email,
+                            resume: user.resume,
+                            photo: user.photo,
+                            mobile: user.mobile,
+                            address: user.address,
+                            skills: user.skills,
+                            education: user.education,
+                            rolesSuited: user.rolesSuited,
+                            jobsApplied: user.jobsApplied,
+                            applications: user.applications,
+                            preferredRole: user.preferredRole,
+                            preferredLocation: user.preferredLocation,
+                            preferredExperience: user.preferredExperience,
+                            linkedinEmail: user.linkedinEmail,
+                            dailyJobsAppliedCount: user.dailyJobsAppliedCount,
+                            acceptedCount: user.acceptedCount,
+                            rejectedCount: user.rejectedCount,
+                            internships: user.internships,
+                            achievements: user.achievements
+                        }
                     });
                 }
 
@@ -743,7 +890,32 @@ app.post('/api/start-single-apply', async (req, res) => {
                         });
                     }
                 }
-                res.json({ ...resultData, user: user });
+                res.json({
+                    ...resultData,
+                    user: {
+                        _id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        resume: user.resume,
+                        photo: user.photo,
+                        mobile: user.mobile,
+                        address: user.address,
+                        skills: user.skills,
+                        education: user.education,
+                        rolesSuited: user.rolesSuited,
+                        jobsApplied: user.jobsApplied,
+                        applications: user.applications,
+                        preferredRole: user.preferredRole,
+                        preferredLocation: user.preferredLocation,
+                        preferredExperience: user.preferredExperience,
+                        linkedinEmail: user.linkedinEmail,
+                        dailyJobsAppliedCount: user.dailyJobsAppliedCount,
+                        acceptedCount: user.acceptedCount,
+                        rejectedCount: user.rejectedCount,
+                        internships: user.internships,
+                        achievements: user.achievements
+                    }
+                });
             } catch (e) {
                 console.error('Frontend Parse Error:', e, 'Raw Output:', output);
                 res.status(500).json({ message: 'Automation finished with unexpected output structure.', error: e.message });

@@ -8,12 +8,15 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from tools.linkedin_login import take_screenshot
+
 @tool
 def answer_questions(driver, user_data):
     """
     Advanced question handler inspired by EasyApplyJobsBot.
     Handles Radios, Text Inputs, and Resume selection.
     """
+    take_screenshot(driver, "anwsering_questions")
     try:
         # 1. Handle Resume Selection (if required on current page)
         try:
@@ -156,13 +159,27 @@ def answer_questions(driver, user_data):
 
                 # Generic Text / URL
                 elif "linkedin" in label_text:
-                    val = "https://linkedin.com/in/" + user_data.get('name', 'user').replace(' ', '').lower()
+                    val = "https://linkedin.com/in/" + user_data.get('name', 'user').lower().replace(' ', '-')
                     inp.send_keys(val)
                 elif "website" in label_text or "portfolio" in label_text:
-                    val = "https://github.com/" + user_data.get('name', 'user').replace(' ', '').lower()
+                    val = "https://github.com/" + user_data.get('name', 'user').lower().replace(' ', '')
+                    inp.send_keys(val)
+                elif "start date" in label_text or "earliest" in label_text:
+                    val = "Immediately"
                     inp.send_keys(val)
 
             except: pass
+
+        # 4. Handle Checkboxes (Terms / Consent)
+        try:
+            checkboxes = driver.find_elements(By.CSS_SELECTOR, "input[type='checkbox']")
+            for cb in checkboxes:
+                try:
+                    if not cb.is_selected():
+                        # Use JS to click as it's often covered by labels
+                        driver.execute_script("arguments[0].click();", cb)
+                except: pass
+        except: pass
 
     except Exception as e:
         sys.stderr.write(f"Advanced question handler error: {str(e)}\n")
@@ -209,11 +226,17 @@ def auto_apply(driver, linkedin_url: str, user_data: dict) -> str:
         if not apply_button:
             return "Easy Apply button not found (Already applied or complex application)."
 
+        # Check if it says "Applied"
+        if "applied" in apply_button.text.lower():
+            return "Already applied to this job."
+
         # Click Apply
+        take_screenshot(driver, "before_easy_apply_click")
         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", apply_button)
         time.sleep(1)
         apply_button.click()
         time.sleep(2)
+        take_screenshot(driver, "after_easy_apply_click")
 
         # 2. Process Multi-Step Form
         max_steps = 15

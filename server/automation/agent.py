@@ -70,7 +70,7 @@ def main():
         applied_today = 0
         
         # Filter jobs: Only process if they match rolesSuited
-        suited_roles = [r.lower() for r in profile_data.get('rolesSuited', [])]
+        suited_roles = [[word for word in r.lower().split() if len(word) > 2] for r in profile_data.get('rolesSuited', [])]
         
         for job in job_matches:
             if applied_today >= limit:
@@ -79,8 +79,15 @@ def main():
             job_url = job.get('link')
             job_title = job.get('title', '').lower()
             
-            # Basic matching: check if job title contains any suited role
-            is_match = any(role in job_title for role in suited_roles) if suited_roles else True
+            # Smart matching: check if all keywords of any suited role appear in the job title
+            is_match = False
+            if not suited_roles:
+                is_match = True
+            else:
+                for role_keywords in suited_roles:
+                    if all(keyword in job_title for keyword in role_keywords):
+                        is_match = True
+                        break
             
             if not is_match:
                 sys.stderr.write(f"Skipping non-matching job: {job.get('title')}\n")

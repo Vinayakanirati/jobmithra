@@ -65,15 +65,10 @@ def linkedin_login(email: str, password: str):
           """
         })
 
-    driver.get("https://www.linkedin.com/feed/")
-    time.sleep(3)
-    take_screenshot()
-
-    # Check if already logged in
-    if "feed" in driver.current_url:
-        return "Already logged in via session persistence."
-
     driver.get("https://www.linkedin.com/login")
+    driver.delete_all_cookies()
+    driver.get("https://www.linkedin.com/login")
+    time.sleep(3)
     take_screenshot()
     
     try:
@@ -113,19 +108,20 @@ def linkedin_login(email: str, password: str):
 def get_driver():
     return driver
 
-def take_screenshot():
+def take_screenshot(driver_to_use=None, label="screenshot"):
     """
     Captures the current browser state and prints it as a base64 string
     for real-time streaming to the frontend.
     """
     global driver
-    if driver:
+    active_driver = driver_to_use if driver_to_use else driver
+    if active_driver:
         try:
             # Optimize: Only take screenshot if page is stable
-            base64_image = driver.get_screenshot_as_base64()
+            base64_image = active_driver.get_screenshot_as_base64()
             # Use sys.stdout to send the data to the Node.js bridge
             import sys
             print(f"SCREENSHOT:{base64_image}")
         except Exception as e:
             import sys
-            sys.stderr.write(f"Screenshot error: {str(e)}\n")
+            sys.stderr.write(f"Screenshot error ({label}): {str(e)}\n")

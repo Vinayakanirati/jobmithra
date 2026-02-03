@@ -56,7 +56,8 @@ const UserSchema = new mongoose.Schema({
         company: String,
         link: String,
         level: String,
-        matchScore: Number
+        matchScore: Number,
+        source: String
     }],
     applications: [{
         role: String,

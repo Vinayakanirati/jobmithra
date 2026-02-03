@@ -8,33 +8,54 @@
   --accent-violet: #b026ff;
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-bg: rgba(255, 255, 255, 0.05);
-  
+
   --font-main: 'Inter', system-ui, -apple-system, sans-serif;
-  
+
   --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
   --ease-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+:root.light-mode {
+  --bg-primary: #f0f4f8;
+  --bg-secondary: rgba(255, 255, 255, 0.8);
+  --text-primary: #112240;
+  --text-secondary: #5f6b89;
+  --accent-blue: #0077be;
+  --accent-cyan: #00b8d4;
+  --accent-violet: #7c4dff;
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-bg: rgba(0, 0, 0, 0.05);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  user-select: none; /* App-like feel */
+  user-select: none;
+  /* App-like feel */
 }
 
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-main);
-  overflow: hidden; 
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #root {
   height: 100vh;
   width: 100vw;
   display: flex;
+  background: var(--bg-primary);
+  /* Use variable for background */
+  transition: background 0.3s ease;
+}
+
+/* Optional: Add a subtle gradient for light mode if desired, or stick to flat color */
+:root:not(.light-mode) #root {
   background: radial-gradient(circle at 50% 50%, #112240 0%, #0a192f 100%);
 }
 

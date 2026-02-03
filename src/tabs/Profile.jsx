@@ -92,6 +92,7 @@ const Profile = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email: user.email,
+                    name: formData.name,
                     resume: formData.resume || undefined,
                     photo: formData.photo || undefined,
                     mobile: formData.mobile,
@@ -191,6 +192,10 @@ const Profile = () => {
                             </>
                         ) : (
                             <form onSubmit={handleUpdate} style={{ background: 'var(--glass-bg)', padding: '1.5rem', borderRadius: '12px', width: '100%' }}>
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Full Name</label>
+                                    <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%', padding: '0.8rem', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', borderRadius: '6px', color: 'white' }} required />
+                                </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                                     <div>
                                         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Mobile</label>

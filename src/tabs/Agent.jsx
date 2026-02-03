@@ -3,7 +3,7 @@ import GravityCard from '../components/GravityCard';
 import { useAuth } from '../context/AuthContext';
 import { io } from 'socket.io-client';
 
-const TimelineItem = ({ company, role, status, date, delay, isMatch = false, onApply = null, isApplying = false, matchScore = null }) => (
+const TimelineItem = ({ company, role, status, date, delay, isMatch = false, onApply = null, isApplying = false, matchScore = null, link = null, onDraft = null, isDrafting = false, source = 'LinkedIn' }) => (
     <div style={{ display: 'flex', marginBottom: '2rem' }}>
         <div style={{ marginRight: '2rem', position: 'relative' }}>
             <div style={{
@@ -26,57 +26,122 @@ const TimelineItem = ({ company, role, status, date, delay, isMatch = false, onA
         </div>
 
         <GravityCard delay={delay} style={{ flex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.3rem' }}>
-                        <h3 style={{ fontFamily: 'Outfit', fontSize: '1.2rem', color: isMatch ? 'var(--accent-cyan)' : 'white', margin: 0 }}>{role}</h3>
-                        {matchScore && (
-                            <span style={{
-                                background: 'rgba(0, 243, 255, 0.1)',
-                                color: 'var(--accent-cyan)',
-                                padding: '0.2rem 0.6rem',
-                                borderRadius: '12px',
-                                fontSize: '0.75rem',
-                                fontWeight: 'bold',
-                                border: '1px solid rgba(0, 243, 255, 0.2)'
-                            }}>
-                                {matchScore}% Match
-                            </span>
-                        )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ flex: 1, minWidth: '200px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.3rem', flexWrap: 'wrap' }}>
+                            <h3 style={{ fontFamily: 'Outfit', fontSize: '1.2rem', color: isMatch ? 'var(--accent-cyan)' : 'white', margin: 0 }}>{role}</h3>
+                            {matchScore && (
+                                <span style={{
+                                    background: 'rgba(0, 243, 255, 0.1)',
+                                    color: 'var(--accent-cyan)',
+                                    padding: '0.2rem 0.6rem',
+                                    borderRadius: '12px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 'bold',
+                                    border: '1px solid rgba(0, 243, 255, 0.2)'
+                                }}>
+                                    {matchScore}% Match
+                                </span>
+                            )}
+                            {source && (
+                                <span style={{
+                                    fontSize: '0.75rem',
+                                    color: 'var(--text-secondary)',
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    padding: '0.1rem 0.5rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                                }}>
+                                    via {source}
+                                </span>
+                            )}
+                        </div>
+                        <p style={{ color: 'var(--text-secondary)' }}>{company} {date && <span style={{ fontSize: '0.8rem', marginLeft: '0.5rem' }}>• {new Date(date).toLocaleDateString()}</span>}</p>
                     </div>
-                    <p style={{ color: 'var(--text-secondary)' }}>{company} {date && <span style={{ fontSize: '0.8rem', marginLeft: '0.5rem' }}>• {new Date(date).toLocaleDateString()}</span>}</p>
+                    {isMatch ? (
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {link && (
+                                <a
+                                    href={link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                        background: 'transparent',
+                                        border: '1px solid var(--accent-blue)',
+                                        color: 'var(--accent-blue)',
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '20px',
+                                        fontSize: '0.85rem',
+                                        textDecoration: 'none',
+                                        fontWeight: 'bold',
+                                        transition: 'all 0.3s',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    🔗 Manual
+                                </a>
+                            )}
+
+                            {onDraft && (
+                                <button
+                                    onClick={onDraft}
+                                    disabled={isDrafting}
+                                    style={{
+                                        background: 'rgba(176, 38, 255, 0.1)',
+                                        border: '1px solid var(--accent-violet)',
+                                        color: 'var(--accent-violet)',
+                                        padding: '0.5rem 1rem',
+                                        borderRadius: '20px',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 'bold',
+                                        cursor: isDrafting ? 'wait' : 'pointer',
+                                        transition: 'all 0.3s',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    {isDrafting ? '✍️...' : '📝 Draft Letter'}
+                                </button>
+                            )}
+
+                            {(source && source.toLowerCase().includes('linkedin')) && (
+                                <button
+                                    onClick={onApply}
+                                    disabled={isApplying || status === 'Applied'}
+                                    style={{
+                                        background: status === 'Applied' ? '#00ff88' : 'var(--accent-blue)',
+                                        border: 'none',
+                                        color: '#000',
+                                        padding: '0.5rem 1.2rem',
+                                        borderRadius: '20px',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 'bold',
+                                        cursor: isApplying ? 'wait' : 'pointer',
+                                        transition: 'all 0.3s',
+                                        boxShadow: `0 0 15px ${status === 'Applied' ? 'rgba(0, 255, 136, 0.4)' : 'rgba(0, 243, 255, 0.3)'}`,
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    {isApplying ? 'Applying...' : (status === 'Applied' ? 'Applied ✓' : 'Auto Apply')}
+                                </button>
+                            )}
+                        </div>
+                    ) : (
+                        <span style={{
+                            background: 'rgba(0, 243, 255, 0.1)',
+                            border: '1px solid var(--accent-blue)',
+                            color: 'var(--accent-blue)',
+                            padding: '0.2rem 0.8rem',
+                            borderRadius: '12px',
+                            fontSize: '0.8rem',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            {status}
+                        </span>
+                    )}
                 </div>
-                {isMatch ? (
-                    <button
-                        onClick={onApply}
-                        disabled={isApplying || status === 'Applied'}
-                        style={{
-                            background: status === 'Applied' ? '#00ff88' : 'var(--accent-blue)',
-                            border: 'none',
-                            color: '#000',
-                            padding: '0.5rem 1.2rem',
-                            borderRadius: '20px',
-                            fontSize: '0.85rem',
-                            fontWeight: 'bold',
-                            cursor: isApplying ? 'wait' : 'pointer',
-                            transition: 'all 0.3s',
-                            boxShadow: `0 0 15px ${status === 'Applied' ? 'rgba(0, 255, 136, 0.4)' : 'rgba(0, 243, 255, 0.3)'}`
-                        }}
-                    >
-                        {isApplying ? 'Applying...' : (status === 'Applied' ? 'Applied ✓' : 'Apply Now')}
-                    </button>
-                ) : (
-                    <span style={{
-                        background: 'rgba(0, 243, 255, 0.1)',
-                        border: '1px solid var(--accent-blue)',
-                        color: 'var(--accent-blue)',
-                        padding: '0.2rem 0.8rem',
-                        borderRadius: '12px',
-                        fontSize: '0.8rem'
-                    }}>
-                        {status}
-                    </span>
-                )}
             </div>
         </GravityCard>
     </div>
@@ -100,7 +165,6 @@ const Agent = () => {
 
     useEffect(() => {
         // Initialize Socket.IO connection
-        // In local dev, it's localhost:5000. In production, it's the same origin.
         const socketUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : window.location.origin;
         socketRef.current = io(socketUrl);
 
@@ -306,28 +370,11 @@ const Agent = () => {
                                     matchScore={job.matchScore || Math.floor(Math.random() * (95 - 75 + 1)) + 75} // Fallback for UI demo
                                     isApplying={applyingId === i}
                                     onApply={() => handleSingleApply(job, i)}
+                                    link={job.link}
+                                    onDraft={() => handleDraftLetter(job, i)}
+                                    isDrafting={draftingId === i}
+                                    source={job.source}
                                 />
-                                <button
-                                    onClick={() => handleDraftLetter(job, i)}
-                                    disabled={draftingId === i}
-                                    style={{
-                                        position: 'absolute',
-                                        right: '120px',
-                                        top: '1.8rem',
-                                        background: 'rgba(176, 38, 255, 0.1)',
-                                        border: '1px solid var(--accent-violet)',
-                                        color: 'var(--accent-violet)',
-                                        padding: '0.3rem 0.8rem',
-                                        borderRadius: '15px',
-                                        fontSize: '0.75rem',
-                                        fontWeight: 'bold',
-                                        cursor: draftingId === i ? 'wait' : 'pointer',
-                                        transition: 'all 0.3s',
-                                        zIndex: 2
-                                    }}
-                                >
-                                    {draftingId === i ? '✍️ Drafting...' : '📝 Draft Letter'}
-                                </button>
                             </div>
                         );
                     })

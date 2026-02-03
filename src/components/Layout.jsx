@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Navigation from './Navigation';
 import '../styles/animations.css';
 
+import { useTheme } from '../context/ThemeContext';
+
 const Layout = ({ activeTab, onTabChange, isAuthenticated, onLoginClick, children }) => {
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const { theme, toggleTheme } = useTheme();
 
     useEffect(() => {
         const handleResize = () => {
@@ -43,6 +46,30 @@ const Layout = ({ activeTab, onTabChange, isAuthenticated, onLoginClick, childre
                     ☰
                 </button>
             )}
+
+            {/* Theme Toggle Button */}
+            <button
+                onClick={toggleTheme}
+                style={{
+                    position: 'absolute',
+                    top: '1rem',
+                    right: '2rem',
+                    zIndex: 100,
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid var(--glass-border)',
+                    color: theme === 'light' ? '#000' : '#fff',
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    fontSize: '1.2rem',
+                    backdropFilter: 'blur(5px)',
+                    transition: 'all 0.3s ease',
+                    boxShadow: theme === 'light' ? '0 2px 10px rgba(0,0,0,0.1)' : 'none'
+                }}
+                title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+            >
+                {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
 
             <Navigation
                 activeTab={activeTab}

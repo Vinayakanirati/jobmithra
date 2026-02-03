@@ -17,6 +17,32 @@ export const AuthProvider = ({ children }) => {
         }
     }, [user]);
 
+    // Check session validity and refresh data on mount
+    useEffect(() => {
+        const checkSession = async () => {
+            const savedUser = localStorage.getItem('jobmithra_user');
+            if (savedUser) {
+                try {
+                    const parsedUser = JSON.parse(savedUser);
+                    if (parsedUser.email) {
+                        const res = await fetch('/api/me', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: parsedUser.email })
+                        });
+                        if (res.ok) {
+                            const params = await res.json();
+                            setUser(prev => ({ ...prev, ...params }));
+                        }
+                    }
+                } catch (err) {
+                    console.error("Session sync failed:", err);
+                }
+            }
+        };
+        checkSession();
+    }, []);
+
     const login = async (userData) => {
         setError(null);
         try {
@@ -27,14 +53,19 @@ export const AuthProvider = ({ children }) => {
             });
 
             const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Login failed');
+            if (!response.ok) {
+                if (response.status === 401 && data.isUnverified) {
+                    return { success: false, isUnverified: true, message: data.message };
+                }
+                throw new Error(data.message || 'Login failed');
+            }
 
             setUser(data);
-            return true;
+            return { success: true };
         } catch (err) {
             console.error(err);
             setError(err.message);
-            return false;
+            return { success: false, message: err.message };
         }
     };
 
@@ -79,6 +110,43 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const resendOTP = async (email) => {
+        setError(null);
+        try {
+            const response = await fetch('/api/resend-verification-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Failed to resend OTP');
+            return true;
+        } catch (err) {
+            setError(err.message);
+            return false;
+        }
+    };
+
+    const updateApplicationStatus = async (applicationId, status) => {
+        setError(null);
+        try {
+            const response = await fetch('/api/update-application-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: user.email, applicationId, status })
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Update failed');
+
+            if (data.user) setUser(data.user);
+            return true;
+        } catch (err) {
+            setError(err.message);
+            return false;
+        }
+    };
+
     const logout = () => {
         setUser(null);
         localStorage.removeItem('jobmithra_user');
@@ -93,7 +161,18 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, registerInit, registerVerify, logout, updateUser, isAuthenticated: !!user, error }}>
+        <AuthContext.Provider value={{
+            user,
+            login,
+            registerInit,
+            registerVerify,
+            resendOTP,
+            logout,
+            updateUser,
+            updateApplicationStatus,
+            isAuthenticated: !!user,
+            error
+        }}>
             {children}
         </AuthContext.Provider>
     );

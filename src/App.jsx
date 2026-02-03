@@ -11,9 +11,14 @@ import Login from './tabs/Login';
 import Register from './tabs/Register';
 import ForgotPassword from './tabs/ForgotPassword';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 function AppContent() {
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    return tab || 'home';
+  });
   const { isAuthenticated } = useAuth();
 
   // Handle Auth State Changes
@@ -47,7 +52,7 @@ function AppContent() {
       case 'preferences': return isAuthenticated ? <Preferences /> : <Login onSuccess={() => setActiveTab('preferences')} onSwitchToRegister={() => setActiveTab('register')} />;
       case 'agent': return isAuthenticated ? <Agent /> : <Login onSuccess={() => setActiveTab('agent')} onSwitchToRegister={() => setActiveTab('register')} />;
       case 'interview': return isAuthenticated ? <Interview /> : <Login onSuccess={() => setActiveTab('interview')} onSwitchToRegister={() => setActiveTab('register')} />;
-      case 'dashboard': return isAuthenticated ? <Dashboard /> : <Login onSuccess={() => setActiveTab('dashboard')} onSwitchToRegister={() => setActiveTab('register')} />;
+      case 'dashboard': return isAuthenticated ? <Dashboard onNavigate={setActiveTab} /> : <Login onSuccess={() => setActiveTab('dashboard')} onSwitchToRegister={() => setActiveTab('register')} />;
       case 'profile': return isAuthenticated ? <Profile /> : <Login onSuccess={() => setActiveTab('profile')} onSwitchToRegister={() => setActiveTab('register')} />;
 
       default: return <Home />;
@@ -71,7 +76,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </AuthProvider>
   );
 }

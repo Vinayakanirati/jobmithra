@@ -18,37 +18,52 @@ const Interview = () => {
 
             <style>{`
                 df-messenger {
-                    z-index: 99999;
-                    position: absolute;
-                    top: 100%;
+                    z-index: 9999;
+                    position: fixed; /* Use fixed for better control */
+                    bottom: 0px;
                     right: 0px;
+                    transform: translateX(-50%);
+                    
+                    /* Desktop Dimensions - Larger */
+                    --df-messenger-chat-window-height: 85vh;
+                    --df-messenger-chat-window-width: 60vw;
+                    --df-messenger-chat-window-offset-bottom: 2rem;
                     
                     /* Application Theme (Dark/Neon) */
-                    --df-messenger-font-color: #e6f1ff; /* var(--text-primary) */
+                    --df-messenger-font-color: #e6f1ff;
                     --df-messenger-font-family: 'Outfit', sans-serif;
                     --df-messenger-chat-background: #0a192f; /* var(--bg-primary) */
                     --df-messenger-message-user-background: rgba(0, 243, 255, 0.2); /* var(--accent-blue) with opacity */
-                    --df-messenger-message-bot-background: rgba(255, 255, 255, 0.1); /* var(--glass-bg) */
-                    --df-messenger-input-box-background: #0a192f;
-                    --df-messenger-input-font-color: #e6f1ff;
-                    --df-messenger-send-icon: #00f3ff; /* var(--accent-blue) */
-                    --df-messenger-minimized-chat-close-icon-color: #e6f1ff;
+                    /* Message Content Fixes */
+                    --df-messenger-message-bot-background: rgba(255, 255, 255, 0.1); 
+                    --df-messenger-message-user-background: rgba(0, 243, 255, 0.2);
                     
-                    /* Title Bar Fixes */
-                    --df-messenger-titlebar-background: #0a192f;
-                    --df-messenger-titlebar-font-color: #e6f1ff;
-                    --df-messenger-titlebar-close-icon-color: #e6f1ff;
-                    --df-messenger-titlebar-minimize-icon-color: #e6f1ff;
-                    
-                    /* Desktop Dimensions */
-                    --df-messenger-chat-window-height: 90vh;
-                    --df-messenger-chat-window-width: 75vw;
-                    --df-messenger-chat-window-offset-bottom: 0px;
-                    --df-messenger-chat-window-offset-right: 0px;
-                    
-                    /* Force Opacity */
-                    opacity: 1 !important;
-                    visibility: visible !important;
+                    /* Chip/Button Fixes for Dark Mode */
+                    --df-messenger-chip-background: rgba(255, 255, 255, 0.1);
+                    --df-messenger-chip-color: #e6f1ff;
+                    --df-messenger-chip-border-color: rgba(255, 255, 255, 0.2);
+                }
+
+                /* Deep selector to target internal messenger elements */
+                df-messenger >>> .df-messenger-message-piece {
+                    background-color: transparent !important;
+                    color: inherit !important;
+                }
+
+                /* Target the specific "white blobs" (often <code> or specialized spans) */
+                df-messenger >>> code, 
+                df-messenger >>> .df-messenger-content span {
+                    background-color: rgba(255, 255, 255, 0.1) !important;
+                    color: #00f3ff !important;
+                    padding: 2px 6px !important;
+                    border-radius: 4px !important;
+                }
+
+                /* Fix for suggestion chips and buttons */
+                df-messenger >>> .df-messenger-suggestion-wrapper button {
+                    background-color: rgba(0, 243, 255, 0.1) !important;
+                    color: #00f3ff !important;
+                    border: 1px solid rgba(0, 243, 255, 0.3) !important;
                 }
 
                 @media (max-width: 768px) {
