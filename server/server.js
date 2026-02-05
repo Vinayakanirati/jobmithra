@@ -25,8 +25,8 @@ const io = require('socket.io')(http, {
 // Note: User prompt mentions vinayakanirati@gmail.com
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false, // Use STARTTLS
     auth: {
         user: 'vinayakanirati@gmail.com',
         pass: process.env.GMAIL_APP_PASSWORD
