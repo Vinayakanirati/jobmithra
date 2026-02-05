@@ -18,6 +18,8 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
     });
     const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const validate = () => {
         const newErrors = {};
@@ -189,22 +191,40 @@ const Register = ({ onSuccess, onSwitchToLogin }) => {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                             <div>
                                 <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Password *</label>
-                                <input
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                    style={{ width: '100%', padding: '1rem', background: 'var(--glass-bg)', border: errors.password ? '1px solid #ff4444' : '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', outline: 'none' }}
-                                />
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        value={formData.password}
+                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                        style={{ width: '100%', padding: '1rem', paddingRight: '2.5rem', background: 'var(--glass-bg)', border: errors.password ? '1px solid #ff4444' : '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', outline: 'none' }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.1rem' }}
+                                    >
+                                        {showPassword ? '👁️' : '👁️‍🗨️'}
+                                    </button>
+                                </div>
                                 {errors.password && <span style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: '0.5rem', display: 'block' }}>{errors.password}</span>}
                             </div>
                             <div>
                                 <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Confirm Password *</label>
-                                <input
-                                    type="password"
-                                    value={formData.confirmPassword}
-                                    onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                    style={{ width: '100%', padding: '1rem', background: 'var(--glass-bg)', border: errors.confirmPassword ? '1px solid #ff4444' : '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', outline: 'none' }}
-                                />
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        value={formData.confirmPassword}
+                                        onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                        style={{ width: '100%', padding: '1rem', paddingRight: '2.5rem', background: 'var(--glass-bg)', border: errors.confirmPassword ? '1px solid #ff4444' : '1px solid var(--glass-border)', borderRadius: '8px', color: 'white', outline: 'none' }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.1rem' }}
+                                    >
+                                        {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                                    </button>
+                                </div>
                                 {errors.confirmPassword && <span style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: '0.5rem', display: 'block' }}>{errors.confirmPassword}</span>}
                             </div>
                         </div>

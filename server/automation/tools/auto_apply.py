@@ -59,6 +59,17 @@ def answer_questions(driver, user_data):
                         opts = fieldset.find_elements(By.TAG_NAME, "label")
                         if opts: opts[0].click()
             except: pass
+        
+        # 2b. Smart MCQ Handling (Dropdowns/Radios) - Fallback
+        try:
+             # Logic for "Review" step or generic "I agree" / Consent
+             agreements = driver.find_elements(By.XPATH, "//label[contains(., 'agree') or contains(., 'Consent') or contains(., 'acknowledge')]")
+             for agree in agreements:
+                 try:
+                     agree.click()
+                     sys.stderr.write(f"Smart Click: Consent/Agreement '{agree.text[:20]}'\n")
+                 except: pass
+        except: pass
 
         # 3. Handle Text Inputs & Dropdowns
         inputs = driver.find_elements(By.CSS_SELECTOR, "input[type='text'], input[type='number'], select")
@@ -139,7 +150,7 @@ def answer_questions(driver, user_data):
                     for skill in user_skills:
                         if skill in label_text:
                             # If it's a specific skill they listed, we can be confident
-                            exp = str(max(int(exp), 4))
+                            exp = str(max(int(exp), 5)) # Boost to 5 years for specific skills
                             break
                     
                     if inp.tag_name == "select":
@@ -230,11 +241,13 @@ def auto_apply(driver, linkedin_url: str, user_data: dict) -> str:
         if "applied" in apply_button.text.lower():
             return "Already applied to this job."
 
-        # Click Apply
+        # Click Apply using JS for robustness
         take_screenshot(driver, "before_easy_apply_click")
         driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", apply_button)
         time.sleep(1)
-        apply_button.click()
+        
+        # Try JS click always as it's more reliable for overlay/floating buttons
+        driver.execute_script("arguments[0].click();", apply_button)
         time.sleep(2)
         take_screenshot(driver, "after_easy_apply_click")
 

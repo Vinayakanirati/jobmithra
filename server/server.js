@@ -535,7 +535,9 @@ app.post('/api/save-linkedin-credentials', async (req, res) => {
         if (!user) return res.status(404).json({ message: 'User not found' });
 
         user.linkedinEmail = lEmail;
-        user.linkedinPassword = encrypt(lPassword);
+        if (lPassword && lPassword !== '' && lPassword !== '••••••••') {
+            user.linkedinPassword = encrypt(lPassword);
+        }
         await user.save();
 
         res.json({

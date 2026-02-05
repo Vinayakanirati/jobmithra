@@ -24,11 +24,11 @@ function AppContent() {
   // Handle Auth State Changes
   useEffect(() => {
     if (isAuthenticated) {
-      if (activeTab === 'login' || activeTab === 'register') {
-        setActiveTab('home');
-      }
+      // If authenticated and on login/register, we DON'T force redirect to home.
+      // This allows users to switch accounts if they want to.
+      // However, if they are on a protected route that is NOT login/register/forgot-password, they stay there.
     } else {
-      if (activeTab !== 'login' && activeTab !== 'register' && activeTab !== 'home') {
+      if (activeTab !== 'login' && activeTab !== 'register' && activeTab !== 'home' && activeTab !== 'forgot-password') {
         setActiveTab('home');
       }
     }

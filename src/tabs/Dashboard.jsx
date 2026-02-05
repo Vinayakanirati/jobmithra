@@ -122,13 +122,18 @@ const Dashboard = ({ onNavigate }) => {
                     color="var(--accent-violet)"
                     delay={0.2}
                 />
-                <StatCard
-                    title="Profile Completion"
-                    value={user?.resume ? '100%' : '50%'}
-                    subtext={user?.resume ? "Resume uploaded" : "Upload resume to improve"}
-                    color="var(--accent-cyan)"
-                    delay={0.3}
-                />
+                <div
+                    onClick={() => onNavigate('preferences')}
+                    style={{ cursor: 'pointer' }}
+                >
+                    <StatCard
+                        title="Profile Completion"
+                        value={user?.resume ? '100%' : '50%'}
+                        subtext={user?.resume ? "Resume uploaded" : "Upload resume to improve"}
+                        color="var(--accent-cyan)"
+                        delay={0.3}
+                    />
+                </div>
                 <StatCard
                     title="Internships"
                     value={user?.internships?.length || 0}

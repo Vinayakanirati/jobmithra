@@ -1,5 +1,6 @@
 from adk import tool
 import os
+import sys
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -18,6 +19,7 @@ def linkedin_login(email: str, password: str):
     """
     Logs into LinkedIn and keeps the browser session alive for automation
     """
+    import sys
     global driver
     if not driver:
         options = Options()
@@ -31,18 +33,8 @@ def linkedin_login(email: str, password: str):
         else:
             service = Service(ChromeDriverManager().install())
         
-        # Use a persistent Chrome profile
-        if os.name != 'nt':
-            profile_path = "/tmp/chrome_profile"
-        else:
-            profile_path = os.path.join(os.getcwd(), "chrome_profile")
-            
-        if not os.path.exists(profile_path):
-            try:
-                os.makedirs(profile_path)
-            except: pass
-        
-        options.add_argument(f"user-data-dir={profile_path}")
+        # Custom user agent
+        # options.add_argument("user-data-dir=") removed to use default temp profile
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
@@ -65,8 +57,44 @@ def linkedin_login(email: str, password: str):
           """
         })
 
-    driver.get("https://www.linkedin.com/login")
-    driver.delete_all_cookies()
+    # 1. Open linkedin.com first as requested
+    driver.get("https://www.linkedin.com")
+    time.sleep(3)
+    
+    # Check if already logged in
+    is_logged_in = False
+    current_user_email = None
+    
+    try:
+        # Check for 'me' icon which indicates login
+        me_icons = driver.find_elements(By.CLASS_NAME, "global-nav__me")
+        if me_icons:
+            is_logged_in = True
+            sys.stderr.write("Detected active session. Verifying account...\n")
+            
+            # Navigate to settings/account to check email if possible, 
+            # or just assume we need to logout if we want to be sure.
+            # A safer way is to check the 'me' menu or profile.
+            # But LinkedIn doesn't easily show email in the main UI without extra clicks.
+            # We'll check the 'me' menu text or just perform a logout if we aren't 100% sure.
+            
+            # To be safe and meet the "if there exists a login log out and login" request:
+            # If we are logged in, we logout to ensure we use the CURRENT credentials.
+            sys.stderr.write("Logging out existing session to ensure fresh login with current credentials.\n")
+            driver.get("https://www.linkedin.com/logout")
+            time.sleep(3)
+            is_logged_in = False
+    except Exception as e:
+        sys.stderr.write(f"Error during initial session check: {str(e)}\n")
+        is_logged_in = False
+
+    if is_logged_in:
+        # This block might not be reached if we always logout above, 
+        # but kept for logic completeness.
+        sys.stderr.write("Session active and verified. Skipping login fields.\n")
+        return "Login successful (Session reused)."
+
+    # Not logged in, go to login page
     driver.get("https://www.linkedin.com/login")
     time.sleep(3)
     take_screenshot()
@@ -75,6 +103,15 @@ def linkedin_login(email: str, password: str):
         # Wait for fields to be interactable
         wait = WebDriverWait(driver, 15)
         
+        # Proactively look for login fields
+        username_fields = driver.find_elements(By.ID, "username")
+        if not username_fields:
+            # Maybe already logged in after redirect?
+            if "feed" in driver.current_url:
+                return "Login successful (Auto-redirected)."
+            return "Login failed: Login fields not found."
+
+        sys.stderr.write("Entering credentials...\n")
         user_field = wait.until(EC.element_to_be_clickable((By.ID, "username")))
         user_field.clear()
         user_field.send_keys(email)
@@ -88,18 +125,38 @@ def linkedin_login(email: str, password: str):
         time.sleep(5)
         take_screenshot()
 
-        # Check for 2FA/Verification
+        # Check for 2FA/Verification and wait if needed
+        start_wait_time = time.sleep(0) # Logic start
+        max_wait = 120 # 2 minutes for user to enter code
+        waited = 0
+        
+        while waited < max_wait:
+            curr_url = driver.current_url
+            if "checkpoint" in curr_url or "challenge" in curr_url:
+                sys.stderr.write(f"Verification required (checkpoint). Waiting... ({waited}/{max_wait}s)\n")
+                take_screenshot()
+                time.sleep(5)
+                waited += 5
+            elif "feed" in curr_url or "mynetwork" in curr_url or "/in/" in curr_url:
+                sys.stderr.write("Login successful: Redirected to authenticated page.\n")
+                return "Login successful."
+            elif "login-submit" in curr_url or "login" in curr_url:
+                # Check for error message
+                try:
+                    error_msg = driver.find_element(By.ID, "error-for-password").text
+                    return f"Login failed: {error_msg}"
+                except:
+                    # Maybe it's still loading or just stayed on login page
+                    time.sleep(2)
+                    waited += 2
+            else:
+                # Unknown state, but if not checkpoint/login, might be successful
+                sys.stderr.write(f"Transitioned to unknown URL: {curr_url}\n")
+                return "Login status uncertain, but no longer on login/checkpoint page."
+
         if "checkpoint" in driver.current_url:
-            return "VERIFICATION_REQUIRED: Please enter the code on your mobile or check your email."
+            return "VERIFICATION_TIMEOUT: User did not complete 2FA in time."
             
-        if "login-submit" in driver.current_url or "login" in driver.current_url:
-            # Check for error message on page
-            try:
-                error_msg = driver.find_element(By.ID, "error-for-password").text
-                return f"Login failed correctly: {error_msg}"
-            except:
-                return "Login failed: Incorrect credentials or Security Check triggered."
-                
         return "Login successful."
     except Exception as e:
         take_screenshot()

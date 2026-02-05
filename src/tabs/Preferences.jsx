@@ -12,8 +12,9 @@ const Preferences = () => {
     });
 
     const [lEmail, setLEmail] = useState(user?.linkedinEmail || '');
-    const [lPassword, setLPassword] = useState('');
+    const [lPassword, setLPassword] = useState(user?.linkedinEmail ? '••••••••' : '');
     const [isAutoApplying, setIsAutoApplying] = useState(false);
+    const [showLinkedInPassword, setShowLinkedInPassword] = useState(false);
     const [errors, setErrors] = useState({});
 
     // Use rolesSuited from user data if available
@@ -40,6 +41,9 @@ const Preferences = () => {
                 experience: user.preferredExperience || ''
             });
             setLEmail(user.linkedinEmail || '');
+            if (user.linkedinEmail) {
+                setLPassword('••••••••');
+            }
         }
     }, [user]);
 
@@ -71,32 +75,60 @@ const Preferences = () => {
 
     const handleLinkedInSave = async () => {
         try {
+            // Don't send placeholder password
+            const passwordToSend = lPassword === '••••••••' ? '' : lPassword;
+            if (lPassword !== '••••••••' && !lPassword && lEmail) {
+                // If user cleared the password field and email exists, maybe they want to clear it?
+                // But user request implies they want it to persist. 
+                // We'll only send if it's NOT the placeholder and NOT empty (or if they actually want to clear it)
+            }
+
             const res = await fetch('/api/save-linkedin-credentials', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: user.email, lEmail, lPassword })
+                body: JSON.stringify({ email: user.email, lEmail, lPassword: passwordToSend })
             });
             const data = await res.json();
-            alert(data.message);
+            if (res.ok) {
+                alert(data.message);
+                if (passwordToSend) setLPassword('••••••••');
+            } else {
+                alert(data.message || 'Error saving credentials');
+            }
         } catch (err) {
             alert('Error saving credentials');
         }
     };
 
     const handleStartAutoApply = async () => {
-        setIsAutoApplying(true);
+        if (!lEmail || !lPassword || lPassword === '') {
+            alert('Please provide your LinkedIn Email and Password first.');
+            // Scroll to the LinkedIn settings section
+            const section = document.getElementById('linkedin-credentials-section');
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth' });
+            }
+            return;
+        }
+
         try {
-            const res = await fetch('/api/start-auto-apply', {
+            setIsAutoApplying(true);
+            const res = await fetch('/api/automation/start', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: user.email })
             });
             const data = await res.json();
-            alert(data.message);
+            if (res.ok) {
+                alert('Automation started background. You can track progress in the Dashboard.');
+            } else {
+                alert(data.message || 'Error starting automation');
+            }
         } catch (err) {
             alert('Error starting automation');
+        } finally {
+            setIsAutoApplying(false);
         }
-        setIsAutoApplying(false);
     };
 
     return (
@@ -262,21 +294,31 @@ const Preferences = () => {
 
                 <div className="animate-fall-in" style={{ animationDelay: '0.2s', marginBottom: '1.5rem' }}>
                     <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontSize: '0.85rem' }}>LinkedIn Password</label>
-                    <input
-                        type="password"
-                        placeholder="••••••••"
-                        value={lPassword}
-                        onChange={(e) => setLPassword(e.target.value)}
-                        style={{
-                            width: '100%',
-                            background: 'var(--glass-bg)',
-                            border: '1px solid var(--glass-border)',
-                            padding: '0.8rem',
-                            borderRadius: '8px',
-                            color: 'white',
-                            outline: 'none'
-                        }}
-                    />
+                    <div style={{ position: 'relative' }}>
+                        <input
+                            type={showLinkedInPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            value={lPassword}
+                            onChange={(e) => setLPassword(e.target.value)}
+                            style={{
+                                width: '100%',
+                                background: 'var(--glass-bg)',
+                                border: '1px solid var(--glass-border)',
+                                padding: '0.8rem',
+                                paddingRight: '2.5rem',
+                                borderRadius: '8px',
+                                color: 'white',
+                                outline: 'none'
+                            }}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowLinkedInPassword(!showLinkedInPassword)}
+                            style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1rem' }}
+                        >
+                            {showLinkedInPassword ? '👁️' : '👁️‍🗨️'}
+                        </button>
+                    </div>
                 </div>
 
                 <button

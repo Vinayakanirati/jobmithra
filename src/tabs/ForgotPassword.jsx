@@ -9,6 +9,7 @@ const ForgotPassword = ({ onBackToLogin }) => {
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSendOTP = async (e) => {
         e.preventDefault();
@@ -124,21 +125,31 @@ const ForgotPassword = ({ onBackToLogin }) => {
                         </div>
                         <div>
                             <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>New Password</label>
-                            <input
-                                type="password"
-                                value={newPassword}
-                                onChange={e => setNewPassword(e.target.value)}
-                                required
-                                style={{
-                                    width: '100%',
-                                    padding: '1rem',
-                                    background: 'var(--glass-bg)',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: '8px',
-                                    color: 'white',
-                                    outline: 'none'
-                                }}
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    value={newPassword}
+                                    onChange={e => setNewPassword(e.target.value)}
+                                    required
+                                    style={{
+                                        width: '100%',
+                                        padding: '1rem',
+                                        paddingRight: '3rem',
+                                        background: 'var(--glass-bg)',
+                                        border: '1px solid var(--glass-border)',
+                                        borderRadius: '8px',
+                                        color: 'white',
+                                        outline: 'none'
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '1.2rem' }}
+                                >
+                                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                                </button>
+                            </div>
                         </div>
                         <button type="submit" disabled={isLoading} style={{
                             background: isLoading ? 'var(--text-secondary)' : 'var(--accent-blue)',

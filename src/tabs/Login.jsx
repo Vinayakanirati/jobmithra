@@ -89,6 +89,8 @@ const Login = ({ onSuccess, onSwitchToRegister, onForgotPassword }) => {
         setIsLoading(false);
     }
 
+    const [showPassword, setShowPassword] = useState(false);
+
     return (
         <div style={{ maxWidth: '400px', margin: '0 auto', paddingTop: '10vh' }}>
             <GravityCard delay={0.1} style={{ textAlign: 'center' }}>
@@ -131,20 +133,44 @@ const Login = ({ onSuccess, onSwitchToRegister, onForgotPassword }) => {
 
                         <div>
                             <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Password</label>
-                            <input
-                                type="password"
-                                value={formData.password}
-                                onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                style={{
-                                    width: '100%',
-                                    padding: '1rem',
-                                    background: 'var(--glass-bg)',
-                                    border: errors.password ? '1px solid #ff4444' : '1px solid var(--glass-border)',
-                                    borderRadius: '8px',
-                                    color: 'white',
-                                    outline: 'none'
-                                }}
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    value={formData.password}
+                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                    style={{
+                                        width: '100%',
+                                        padding: '1rem',
+                                        paddingRight: '3rem',
+                                        background: 'var(--glass-bg)',
+                                        border: errors.password ? '1px solid #ff4444' : '1px solid var(--glass-border)',
+                                        borderRadius: '8px',
+                                        color: 'white',
+                                        outline: 'none'
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    style={{
+                                        position: 'absolute',
+                                        right: '1rem',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: 'var(--text-secondary)',
+                                        cursor: 'pointer',
+                                        fontSize: '1.2rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: '0'
+                                    }}
+                                >
+                                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                                </button>
+                            </div>
                             {errors.password && <span style={{ color: '#ff4444', fontSize: '0.8rem', marginTop: '0.5rem', display: 'block' }}>{errors.password}</span>}
                         </div>
 

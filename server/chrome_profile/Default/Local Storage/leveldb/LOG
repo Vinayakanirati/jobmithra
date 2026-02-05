@@ -1,3 +1,6 @@
-2026/02/03-17:17:25.423 5e68 Reusing MANIFEST C:\Users\Krishna Sepur\OneDrive\Desktop\major project\jobmithra\server\chrome_profile\Default\Local Storage\leveldb/MANIFEST-000001
-2026/02/03-17:17:25.443 5e68 Recovering log #8
-2026/02/03-17:17:25.451 5e68 Reusing old log C:\Users\Krishna Sepur\OneDrive\Desktop\major project\jobmithra\server\chrome_profile\Default\Local Storage\leveldb/000008.log 
+2026/02/04-16:24:55.811 4424 Reusing MANIFEST C:\Users\Krishna Sepur\OneDrive\Desktop\major project\jobmithra\server\chrome_profile\Default\Local Storage\leveldb/MANIFEST-000001
+2026/02/04-16:24:55.840 4424 Recovering log #11
+2026/02/04-16:24:55.866 4424 Reusing old log C:\Users\Krishna Sepur\OneDrive\Desktop\major project\jobmithra\server\chrome_profile\Default\Local Storage\leveldb/000011.log 
+2026/02/04-16:26:57.519 16e8 Level-0 table #16: started
+2026/02/04-16:26:57.531 16e8 Level-0 table #16: 27735 bytes OK
+2026/02/04-16:26:57.537 16e8 Delete type=0 #11
