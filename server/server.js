@@ -24,10 +24,20 @@ const io = require('socket.io')(http, {
 // Nodemailer transporter (using vinayakanirati@gmail.com)
 // Note: User prompt mentions vinayakanirati@gmail.com
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
         user: 'vinayakanirati@gmail.com',
         pass: process.env.GMAIL_APP_PASSWORD
+    }
+});
+
+transporter.verify(function (error, success) {
+    if (error) {
+        console.error('SMTP Connection Error:', error);
+    } else {
+        console.log('SMTP Server is ready to take our messages');
     }
 });
 
@@ -60,6 +70,31 @@ mongoose.connect(uri)
     });
 
 // Routes
+
+app.get('/api/debug/test-email', async (req, res) => {
+    const email = req.query.email || 'vinayakanirati@gmail.com';
+    console.log(`Debug: Attempting to send test email to ${email}`);
+
+    try {
+        const info = await transporter.sendMail({
+            from: 'vinayakanirati@gmail.com',
+            to: email,
+            subject: 'Render Debug Test',
+            text: 'If you receive this, sending from Render is working!'
+        });
+        console.log('Debug: Email sent successfully', info);
+        res.json({ message: 'Email sent', info });
+    } catch (error) {
+        console.error('Debug: Email send failed', error);
+        res.status(500).json({
+            message: 'Email failed',
+            error: error.message,
+            stack: error.stack,
+            code: error.code,
+            command: error.command
+        });
+    }
+});
 
 // Register Init (Send OTP)
 app.post('/api/register-init', async (req, res) => {
