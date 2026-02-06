@@ -21,14 +21,14 @@ const io = require('socket.io')(http, {
     }
 });
 
-// Nodemailer transporter (using vinayakanirati@gmail.com)
+// Nodemailer transporter (using jobmithra1@gmail.com)
 // Note: User prompt mentions vinayakanirati@gmail.com
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
     secure: false, // Use STARTTLS
     auth: {
-        user: 'vinayakanirati@gmail.com',
+        user: 'jobmithra1@gmail.com',
         pass: process.env.GMAIL_APP_PASSWORD
     }
 });
@@ -72,12 +72,12 @@ mongoose.connect(uri)
 // Routes
 
 app.get('/api/debug/test-email', async (req, res) => {
-    const email = req.query.email || 'vinayakanirati@gmail.com';
+    const email = req.query.email || 'jobmithra1@gmail.com';
     console.log(`Debug: Attempting to send test email to ${email}`);
 
     try {
         const info = await transporter.sendMail({
-            from: 'vinayakanirati@gmail.com',
+            from: 'jobmithra1@gmail.com',
             to: email,
             subject: 'Render Debug Test',
             text: 'If you receive this, sending from Render is working!'
@@ -137,7 +137,7 @@ app.post('/api/register-init', async (req, res) => {
         await user.save();
 
         const mailOptions = {
-            from: 'vinayakanirati@gmail.com',
+            from: 'jobmithra1@gmail.com',
             to: email,
             subject: 'JobMithra Registration OTP',
             text: `Welcome to JobMithra, ${name}!\n\nYour 6-digit verification code is: ${otp}\n\nThis code is valid for 10 minutes.`
@@ -229,7 +229,7 @@ app.post('/api/login', async (req, res) => {
             await user.save();
 
             const mailOptions = {
-                from: 'vinayakanirati@gmail.com',
+                from: 'jobmithra1@gmail.com',
                 to: email,
                 subject: 'JobMithra Verification OTP',
                 text: `Your account is not verified yet. Your new JobMithra verification code is: ${otp}\n\nThis code is valid for 10 minutes.`
@@ -324,7 +324,7 @@ app.post('/api/forgot-password', async (req, res) => {
         await user.save();
 
         const mailOptions = {
-            from: 'vinayakanirati@gmail.com',
+            from: 'jobmithra1@gmail.com',
             to: email,
             subject: 'jobmithra reset password',
             text: `Your OTP for password reset is: ${otp}. It is valid for 3 minutes.`
@@ -546,7 +546,7 @@ app.post('/api/apply-job', async (req, res) => {
         await user.save();
 
         const mailOptions = {
-            from: 'vinayakanirati@gmail.com',
+            from: 'jobmithra1@gmail.com',
             to: email,
             subject: `Job Application: ${jobTitle} at ${company}`,
             text: `You have successfully applied for ${jobTitle} at ${company}. 
@@ -628,7 +628,7 @@ app.post('/api/resend-verification-otp', async (req, res) => {
         await user.save();
 
         const mailOptions = {
-            from: 'vinayakanirati@gmail.com',
+            from: 'jobmithra1@gmail.com',
             to: email,
             subject: 'JobMithra Verification OTP',
             text: `Your JobMithra verification code is: ${otp}\n\nThis code is valid for 10 minutes.`
@@ -763,7 +763,7 @@ app.post('/api/start-auto-apply', async (req, res) => {
 
                     const resultsText = resultData.results.map(r => `- ${r.title} at ${r.company}: ${r.status}`).join('\n');
                     const mailOptions = {
-                        from: 'vinayakanirati@gmail.com',
+                        from: 'jobmithra1@gmail.com',
                         to: user.email,
                         subject: 'JobMithra: Daily Job Application Summary',
                         text: `LinkedIn automation completed for today.\n\nApplications Today: ${appliedCount}\nDaily Remaining: ${5 - user.dailyJobsAppliedCount}\n\nSummary:\n${resultsText}\n\nPrepare for interviews: http://localhost:5173/?tab=interview`
@@ -917,7 +917,7 @@ app.post('/api/start-single-apply', async (req, res) => {
 
                         // SEND EMAIL FOR SINGLE APPLY
                         const mailOptions = {
-                            from: 'vinayakanirati@gmail.com',
+                            from: 'jobmithra1@gmail.com',
                             to: user.email,
                             subject: `JobMithra: Application Sent to ${job.company}`,
                             text: `Success! Our agent just applied to the ${job.title} role at ${job.company} for you.\n\nYou can track this and other applications in your JobMithra dashboard.`
