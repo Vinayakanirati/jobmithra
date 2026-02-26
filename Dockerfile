@@ -1,43 +1,47 @@
-# Use a Node image that also has Python
+# ---------- Stage 1: Build client ----------
+FROM node:18-slim AS client-build
+
+WORKDIR /app
+
+COPY package.json ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+
+# ---------- Stage 2: Production ----------
 FROM node:18-slim
 
-# Install Python and Chrome dependencies
-RUN apt-get update && apt-get install -y \
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
     chromium \
     chromium-driver \
     && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables for Selenium
 ENV CHROME_BIN=/usr/bin/chromium
 ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
-# Create app directory
 WORKDIR /app
 
-# Install client dependencies
-# We ONLY copy package.json and NOT package*.json to avoid copying a Windows package-lock.json
-# which can cause "Cannot find module @rollup/rollup-linux-x64-gnu" errors.
-COPY package.json ./
-RUN npm install
-
-# Copy client source and build
-COPY . .
-RUN npm run build
+# Copy built frontend only (not full dev source)
+COPY --from=client-build /app/build ./build
 
 # Install server dependencies
 WORKDIR /app/server
 COPY server/package.json ./
-RUN npm install
+RUN npm install --omit=dev
 
 # Install Python dependencies
 COPY server/requirements.txt ./
 RUN pip3 install --no-cache-dir -r requirements.txt --break-system-packages
 
-# Final setup
+# Copy server source
+COPY server/ .
+
 WORKDIR /app
 EXPOSE 5000
 
-# Start the application
 CMD ["node", "server/server.js"]
