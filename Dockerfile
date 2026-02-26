@@ -39,6 +39,10 @@ RUN pip3 install --no-cache-dir -r requirements.txt --break-system-packages
 # Copy server source
 COPY server/ .
 
+# Ensure .env is available at /app/.env since WORKDIR is /app during runtime 
+# and server.js uses require('dotenv').config() without specifying path
+RUN if [ -f ".env" ]; then cp .env /app/.env; else echo "No .env found in server directory during build"; fi
+
 WORKDIR /app
 EXPOSE 5000
 
