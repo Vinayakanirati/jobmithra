@@ -2,7 +2,6 @@
 FROM node:18-slim AS client-build
 
 WORKDIR /app
-
 COPY package.json ./
 RUN npm install
 
@@ -13,7 +12,6 @@ RUN npm run build
 # ---------- Stage 2: Production ----------
 FROM node:18-slim
 
-# Install only runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     python3-pip \
@@ -26,8 +24,8 @@ ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
 WORKDIR /app
 
-# Copy built frontend only (not full dev source)
-COPY --from=client-build /app/build ./build
+# ✅ Vite output folder
+COPY --from=client-build /app/dist ./dist
 
 # Install server dependencies
 WORKDIR /app/server
